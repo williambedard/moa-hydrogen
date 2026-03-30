@@ -3,10 +3,10 @@
  * https://tailwindcss.com/docs/v4-beta#css-first-configuration
  */
 
-@import 'tailwindcss';
-
-/* Google Fonts */
+/* Google Fonts — must precede all other @import per CSS spec */
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+@import 'tailwindcss';
 
 /* Base styles */
 @layer base {
