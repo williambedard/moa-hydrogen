@@ -6,25 +6,31 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from '@tailwindcss/vite';
 
 /**
- * Injects nodejs_compat into the oxygen.json asset so that
- * node:path / node:process / node:url (used by vfile → react-markdown)
- * resolve correctly on Cloudflare Workers at deploy time.
+ * Redirects node:path/process/url to bundleable polyfills so the SSR
+ * worker doesn't contain bare node: imports that Oxygen can't resolve.
+ * vfile (react-markdown dep) is the only consumer.
  */
-function oxygenNodeCompat(): Plugin {
+function workerNodePolyfills(): Plugin {
   return {
-    name: 'oxygen-nodejs-compat',
-    apply: 'build',
-    enforce: 'post',
-    generateBundle(_, bundle) {
-      const asset = bundle['oxygen.json'];
-      if (asset && asset.type === 'asset') {
-        const config = JSON.parse(asset.source as string);
-        config.compatibility_flags = config.compatibility_flags ?? [];
-        if (!config.compatibility_flags.includes('nodejs_compat')) {
-          config.compatibility_flags.push('nodejs_compat');
-        }
-        asset.source = JSON.stringify(config, null, 2);
+    name: 'worker-node-polyfills',
+    enforce: 'pre',
+    resolveId(source) {
+      if (source === 'node:path') return '\0polyfill:path';
+      if (source === 'node:process') return '\0polyfill:process';
+      if (source === 'node:url') return '\0polyfill:url';
+      return null;
+    },
+    load(id) {
+      if (id === '\0polyfill:path') return "export * from 'pathe'; export {default} from 'pathe';";
+      if (id === '\0polyfill:process') return 'export default { cwd() { return "/"; } };';
+      if (id === '\0polyfill:url') {
+        return [
+          'export function fileURLToPath(url) {',
+          '  return typeof url === "string" ? (url.startsWith("file://") ? url.slice(7) : url) : url.pathname;',
+          '}',
+        ].join('\n');
       }
+      return null;
     },
   };
 }
@@ -32,20 +38,15 @@ function oxygenNodeCompat(): Plugin {
 export default defineConfig(({isSsrBuild}) => ({
   resolve: {
     dedupe: ['react', 'react-dom'],
-    // Prevent Vite from externalizing node: builtins in the worker bundle.
-    // vfile uses node:path/process/url but only for trivial operations
-    // that have browser-compatible equivalents in unenv (ships with Miniflare).
     ...(isSsrBuild
-      ? {
-          conditions: ['workerd', 'worker', 'browser'],
-        }
+      ? {conditions: ['workerd', 'worker', 'browser']}
       : {}),
   },
   plugins: [
+    ...(isSsrBuild ? [workerNodePolyfills()] : []),
     tailwindcss(),
     hydrogen(),
     oxygen(),
-    oxygenNodeCompat(),
     reactRouter(),
     tsconfigPaths(),
   ],
