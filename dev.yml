@@ -1,0 +1,24 @@
+name: 'de-ai-shopping-exp'
+
+type: node
+
+env:
+
+up:
+  - node:
+      version: v25.6.0
+  - nginx
+  - custom:
+      name: Install node dependencies
+      met?: npm install
+      meet: 'true'
+
+check:
+  lint: npm run lint
+  typecheck: npm run typecheck
+
+commands:
+  server:
+    desc: 'Run the application locally'
+    run: |
+      npm run dev "$@"
