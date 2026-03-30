@@ -1,18 +1,51 @@
-import {defineConfig} from 'vite';
+import {defineConfig, type Plugin} from 'vite';
 import {hydrogen} from '@shopify/hydrogen/vite';
 import {oxygen} from '@shopify/mini-oxygen/vite';
 import {reactRouter} from '@react-router/dev/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from '@tailwindcss/vite';
 
+/**
+ * Injects nodejs_compat into the oxygen.json asset so that
+ * node:path / node:process / node:url (used by vfile → react-markdown)
+ * resolve correctly on Cloudflare Workers at deploy time.
+ */
+function oxygenNodeCompat(): Plugin {
+  return {
+    name: 'oxygen-nodejs-compat',
+    apply: 'build',
+    enforce: 'post',
+    generateBundle(_, bundle) {
+      const asset = bundle['oxygen.json'];
+      if (asset && asset.type === 'asset') {
+        const config = JSON.parse(asset.source as string);
+        config.compatibility_flags = config.compatibility_flags ?? [];
+        if (!config.compatibility_flags.includes('nodejs_compat')) {
+          config.compatibility_flags.push('nodejs_compat');
+        }
+        asset.source = JSON.stringify(config, null, 2);
+      }
+    },
+  };
+}
+
 export default defineConfig(({isSsrBuild}) => ({
   resolve: {
     dedupe: ['react', 'react-dom'],
+    // Prevent Vite from externalizing node: builtins in the worker bundle.
+    // vfile uses node:path/process/url but only for trivial operations
+    // that have browser-compatible equivalents in unenv (ships with Miniflare).
+    ...(isSsrBuild
+      ? {
+          conditions: ['workerd', 'worker', 'browser'],
+        }
+      : {}),
   },
   plugins: [
     tailwindcss(),
     hydrogen(),
     oxygen(),
+    oxygenNodeCompat(),
     reactRouter(),
     tsconfigPaths(),
   ],
