@@ -50,12 +50,26 @@ Generated type files: `storefrontapi.generated.d.ts`, `customer-accountapi.gener
 
 ## Critical: React Router v7 (Not Remix)
 
-When referencing Hydrogen or Remix documentation, replace imports:
-- `@remix-run/react` → `react-router`
-- `@remix-run/dev` → `@react-router/dev`
-- `@remix-run/server-runtime` → `react-router`
+This project uses React Router v7, NOT Remix. When working with documentation or code examples, always replace Remix imports:
 
-Never use `react-router-dom` - use `react-router` instead.
+| Remix v2 Package | React Router v7 Package |
+|------------------|-------------------------|
+| `@remix-run/react` | `react-router` |
+| `@remix-run/dev` | `@react-router/dev` |
+| `@remix-run/architect` | `@react-router/architect` |
+| `@remix-run/cloudflare` | `@react-router/cloudflare` |
+| `@remix-run/express` | `@react-router/express` |
+| `@remix-run/fs-routes` | `@react-router/fs-routes` |
+| `@remix-run/node` | `@react-router/node` |
+| `@remix-run/route-config` | `@react-router/dev` |
+| `@remix-run/routes-option-adapter` | `@react-router/remix-routes-option-adapter` |
+| `@remix-run/serve` | `@react-router/serve` |
+| `@remix-run/server-runtime` | `react-router` |
+| `@remix-run/testing` | `react-router` |
+
+NEVER use `react-router-dom` - always use `react-router` instead.
+
+Reference: https://reactrouter.com/upgrading/remix
 
 ## Tech Stack
 - Hydrogen 2025.7.3, React 18, TypeScript 5.9
