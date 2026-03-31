@@ -295,6 +295,9 @@ function HomepageContent({
   const rootData = useRouteLoaderData<RootLoader>('root');
   const curatedSectionRef = useRef<HTMLDivElement>(null);
 
+  // Ref to allow hero to submit queries through the streaming pipeline
+  const heroSubmitRef = useRef<((formData: FormData) => void) | null>(null);
+
   // Cart state
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -454,6 +457,7 @@ function HomepageContent({
         {/* Welcome Hero — chat-first landing */}
         <WelcomeHero
           title="What's your mechanism?"
+          onSubmit={conversationEnabled ? (formData) => heroSubmitRef.current?.(formData) : undefined}
         />
 
         {/* Products Section */}
@@ -508,6 +512,7 @@ function HomepageContent({
             onCuratedHeaderReceived={setAiCuratedHeader}
             onError={setError}
             onClearLastViewed={() => { lastViewedProductRef.current = null; }}
+            submitRef={heroSubmitRef}
           />
         ) : (
           <NonStreamingFallback />
@@ -523,6 +528,7 @@ function StreamingConversationPrompt(props: {
   onCuratedHeaderReceived: (header: CuratedHeaderType | null) => void;
   onError: (error: string | null) => void;
   onClearLastViewed: () => void;
+  submitRef?: React.MutableRefObject<((formData: FormData) => void) | null>;
 }) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasSearchStarted, setHasSearchStarted] = useState(false);
@@ -550,6 +556,7 @@ function StreamingConversationPrompt(props: {
         {...props}
         onStreamingChange={setIsStreaming}
         onSearchStarted={setHasSearchStarted}
+        submitRef={props.submitRef}
       />
     </>
   );
@@ -563,6 +570,7 @@ function StreamingConversationPromptInner({
   onStreamingChange,
   onSearchStarted,
   onClearLastViewed,
+  submitRef,
 }: {
   productContext: ProductContext | null;
   onProductsReceived: (products: Product[] | null) => void;
@@ -571,6 +579,7 @@ function StreamingConversationPromptInner({
   onStreamingChange: (isStreaming: boolean) => void;
   onSearchStarted: (started: boolean) => void;
   onClearLastViewed: () => void;
+  submitRef?: React.MutableRefObject<((formData: FormData) => void) | null>;
 }) {
   const {
     messages,
@@ -765,6 +774,18 @@ function StreamingConversationPromptInner({
       onError,
     ],
   );
+
+  // Expose handleSubmit to the hero via ref
+  useEffect(() => {
+    if (submitRef) {
+      submitRef.current = handleSubmit;
+    }
+    return () => {
+      if (submitRef) {
+        submitRef.current = null;
+      }
+    };
+  }, [submitRef, handleSubmit]);
 
   const handleNewChat = useCallback(() => {
     reset();
