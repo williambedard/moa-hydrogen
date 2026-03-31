@@ -254,13 +254,25 @@ export function ConciergePrompt({
     if (isInHero) setIsExpanded(true);
   }, [isInHero]);
 
+  // Position variants: centered in viewport (hero) vs bottom-right (widget)
+  // Both use position:fixed — the spring animation interpolates between them.
+  // Hero: right:50% + translateX(50%) centers horizontally;
+  //        bottom:50% + translateY(50%) centers vertically.
+  const positionVariants = {
+    hero: {right: '50%', bottom: '50%', x: '50%', y: '50%'},
+    widget: {right: 24, bottom: 24, x: 0, y: 0},
+  };
+  const positionTransition = shouldReduceMotion
+    ? {duration: 0}
+    : {type: 'spring' as const, stiffness: 200, damping: 25};
+
   return (
-    <div
+    <motion.div
       ref={containerRef}
-      className={isInHero
-        ? 'relative z-[110] w-full max-w-[640px] mx-auto transition-opacity duration-300'
-        : 'fixed bottom-6 right-6 z-[110] transition-[opacity,transform] duration-300'
-      }
+      className={`fixed z-[110] ${isInHero ? 'w-full max-w-[640px]' : 'w-[700px] max-w-[calc(100vw-3rem)]'}`}
+      animate={isInHero ? 'hero' : 'widget'}
+      variants={positionVariants}
+      transition={positionTransition}
     >
       <AnimatePresence mode="wait">
         {!isExpanded && !isInHero ? (
@@ -567,41 +579,33 @@ export function ConciergePrompt({
                 </motion.div>
               </div>
             </div>
-            {/* Prompt chips (hero mode only) */}
-            {isInHero && (
-              <div className="flex flex-wrap justify-center gap-2 mt-6">
-                {HERO_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => handleChipClick(prompt)}
-                    className="px-4 py-2 text-sm font-[var(--font-body)] text-[var(--moa-text-secondary)] bg-[var(--moa-surface)] border border-[var(--moa-border)] rounded-full hover:text-[var(--moa-accent)] hover:border-[var(--moa-accent)]/30 transition-all duration-200"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Prompt chips (hero mode only — fade out on scroll) */}
+            <AnimatePresence>
+              {isInHero && (
+                <motion.div
+                  className="flex flex-wrap justify-center gap-2 mt-6"
+                  initial={{opacity: 0, y: 8}}
+                  animate={{opacity: 1, y: 0}}
+                  exit={{opacity: 0, y: 8}}
+                  transition={{duration: 0.2}}
+                >
+                  {HERO_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handleChipClick(prompt)}
+                      className="px-4 py-2 text-sm font-[var(--font-body)] text-[var(--moa-text-secondary)] bg-[var(--moa-surface)] border border-[var(--moa-border)] rounded-full hover:text-[var(--moa-accent)] hover:border-[var(--moa-accent)]/30 transition-all duration-200"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Responsive styles */}
-      <style>{`
-        @media (max-width: 639px) {
-          .fixed.bottom-6.right-6 {
-            right: 1rem;
-            left: 1rem;
-            width: auto;
-          }
-          .fixed.bottom-6.right-6 > button:first-child {
-            position: absolute;
-            right: 0;
-            width: 48px;
-            height: 48px;
-          }
-        }
-      `}</style>
-    </div>
+    </motion.div>
   );
 }

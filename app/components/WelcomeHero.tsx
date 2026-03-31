@@ -55,9 +55,12 @@ export const WelcomeHero = forwardRef<HTMLDivElement, WelcomeHeroProps>(
             {title}
           </motion.h1>
 
-          {/* Sentinel + chat input slot */}
+          {/* Sentinel — observed by IntersectionObserver to detect scroll.
+              The ConciergePrompt inside is position:fixed so it doesn't
+              affect flow; min-h reserves visual space in the hero. */}
           <motion.div
             ref={sentinelRef}
+            className="min-h-[160px]"
             initial={prefersReducedMotion ? {} : {opacity: 0, y: 16}}
             animate={animateTo}
             transition={{duration: 0.6, delay: 0.4}}
