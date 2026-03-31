@@ -254,6 +254,7 @@ export type StreamEvent =
   | {type: 'thinking_delta'; delta: string}
   | {type: 'intent'; intent: IntentResult}
   | {type: 'cart_updated'; cartId: string}
+  | {type: 'auth_required'; loginUrl: string}
   | {type: 'done'; fullText: string; toolCalls: ToolCallInfo[]}
   | {type: 'error'; message: string};
 
@@ -294,6 +295,8 @@ interface StreamAIQueryOptions {
   disableImageGeneration?: boolean;
   openaiBaseURL?: string;
   openaiApiKey?: string;
+  /** Customer Account MCP access token (from PKCE OAuth login) */
+  customerAccessToken?: string;
 }
 
 /**
@@ -319,6 +322,7 @@ export async function* streamAIQuery(
     disableImageGeneration,
     openaiBaseURL,
     openaiApiKey,
+    customerAccessToken,
   } = options;
 
   const totalStart = Date.now();
@@ -330,11 +334,16 @@ export async function* streamAIQuery(
     // Emit stream_start immediately so the client knows the stream is alive
     yield {type: 'stream_start'};
 
+    // Shopify AI Proxy requires Authorization: Bearer (not X-Api-Key).
+    // Local proxy (local.shop.dev) needs no auth — dev CLI handles it.
+    // Remote proxy (proxy.shopify.ai) needs Bearer token via authToken.
+    const isLocalProxy = baseURL?.includes('local.shop.dev');
     const anthropic = new Anthropic({
-      apiKey,
+      ...(isLocalProxy
+        ? {apiKey: 'local-proxy-no-auth-needed'}
+        : {apiKey: 'not-used', authToken: apiKey}),
       baseURL,
       defaultHeaders: {
-        // Add session affinity headers for GCP deployment context preservation
         'X-Shopify-Session-Affinity-Header': 'conversation-id',
       },
     });
@@ -353,6 +362,20 @@ export async function* streamAIQuery(
     } catch (mcpError) {
       console.warn(`[streamAIQuery] MCP connection failed (non-fatal): ${mcpError instanceof Error ? mcpError.message : mcpError}`);
       console.warn('[streamAIQuery] Continuing without MCP tools — AI will respond conversationally');
+    }
+
+    // If customer is authenticated, merge Customer Account MCP tools
+    if (customerAccessToken && mcpClient) {
+      try {
+        const {CustomerAccountMcpClient} = await import('./customer-account-mcp.server');
+        const customerMcp = new CustomerAccountMcpClient(storeDomain.replace(/^https?:\/\//, ''));
+        await customerMcp.discoverEndpoints();
+        const customerTools = await customerMcp.listTools(customerAccessToken);
+        mcpClient.mergeCustomerTools(customerTools, customerMcp, customerAccessToken);
+        console.log(`[streamAIQuery] Customer MCP tools merged: ${customerTools.length} tools`);
+      } catch (customerMcpError) {
+        console.warn(`[streamAIQuery] Customer MCP failed (non-fatal): ${customerMcpError instanceof Error ? customerMcpError.message : customerMcpError}`);
+      }
     }
 
     const hasHistory = Boolean(
@@ -480,77 +503,83 @@ export async function* streamAIQuery(
       let eventCount = 0;
       let firstEventLogged = false;
 
-      for await (const event of stream) {
-        if (!firstEventLogged) {
-          console.log(
-            `[streamAIQuery] Turn ${agenticTurn} first event: ${Date.now() - streamStartTime}ms`,
-          );
-          firstEventLogged = true;
-        }
-        eventCount++;
-        if (eventCount <= 5 || eventCount % 20 === 0) {
-          console.log(`[streamAIQuery] Turn ${agenticTurn} event #${eventCount}:`, event.type);
-        }
-        if (event.type === 'content_block_start') {
-          if (event.content_block.type === 'thinking') {
-            // Extended thinking block started
-          } else if (event.content_block.type === 'tool_use') {
-            currentToolUse = {
-              id: event.content_block.id,
-              name: event.content_block.name,
-              input: '',
-            };
-          } else if (event.content_block.type === 'text') {
-            currentTextBlock = '';
+      try {
+        for await (const event of stream) {
+          if (!firstEventLogged) {
+            console.log(
+              `[streamAIQuery] Turn ${agenticTurn} first event: ${Date.now() - streamStartTime}ms`,
+            );
+            firstEventLogged = true;
           }
-        } else if (event.type === 'content_block_delta') {
-          if (event.delta.type === 'thinking_delta') {
-            yield {type: 'thinking_delta', delta: event.delta.thinking};
-          } else if (event.delta.type === 'text_delta') {
-            currentTextBlock += event.delta.text;
-            fullResponseText += event.delta.text;
-            yield {type: 'text_delta', delta: event.delta.text};
-          } else if (
-            event.delta.type === 'input_json_delta' &&
-            currentToolUse
-          ) {
-            currentToolUse.input += event.delta.partial_json;
+          eventCount++;
+          if (eventCount <= 5 || eventCount % 20 === 0) {
+            console.log(`[streamAIQuery] Turn ${agenticTurn} event #${eventCount}:`, event.type);
           }
-        } else if (event.type === 'content_block_stop') {
-          if (currentToolUse) {
-            let parsedInput: Record<string, unknown> = {};
-            try {
-              parsedInput = JSON.parse(currentToolUse.input || '{}') as Record<
-                string,
-                unknown
-              >;
-            } catch {
-              // Invalid JSON, use empty object
-            }
-            pendingToolUses.push({
-              id: currentToolUse.id,
-              name: currentToolUse.name,
-              input: parsedInput,
-            });
-
-            // Emit tool_use_start immediately for visible tools as soon as
-            // Claude declares them (during stream), so the client shows them
-            // as "pending" while Claude continues outputting. Skip invisible
-            // virtual tools — they are processed silently server-side.
-            if (!isInvisibleVirtualTool(currentToolUse.name)) {
-              yield {
-                type: 'tool_use_start',
-                id: currentToolUse.id,
-                tool: currentToolUse.name,
-                params: parsedInput,
+          if (event.type === 'content_block_start') {
+            if (event.content_block.type === 'thinking') {
+              // Extended thinking block started
+            } else if (event.content_block.type === 'tool_use') {
+              currentToolUse = {
+                id: event.content_block.id,
+                name: event.content_block.name,
+                input: '',
               };
+            } else if (event.content_block.type === 'text') {
+              currentTextBlock = '';
             }
+          } else if (event.type === 'content_block_delta') {
+            if (event.delta.type === 'thinking_delta') {
+              yield {type: 'thinking_delta', delta: event.delta.thinking};
+            } else if (event.delta.type === 'text_delta') {
+              currentTextBlock += event.delta.text;
+              fullResponseText += event.delta.text;
+              yield {type: 'text_delta', delta: event.delta.text};
+            } else if (
+              event.delta.type === 'input_json_delta' &&
+              currentToolUse
+            ) {
+              currentToolUse.input += event.delta.partial_json;
+            }
+          } else if (event.type === 'content_block_stop') {
+            if (currentToolUse) {
+              let parsedInput: Record<string, unknown> = {};
+              try {
+                parsedInput = JSON.parse(currentToolUse.input || '{}') as Record<
+                  string,
+                  unknown
+                >;
+              } catch {
+                // Invalid JSON, use empty object
+              }
+              pendingToolUses.push({
+                id: currentToolUse.id,
+                name: currentToolUse.name,
+                input: parsedInput,
+              });
 
-            currentToolUse = null;
+              // Emit tool_use_start immediately for visible tools as soon as
+              // Claude declares them (during stream), so the client shows them
+              // as "pending" while Claude continues outputting. Skip invisible
+              // virtual tools — they are processed silently server-side.
+              if (!isInvisibleVirtualTool(currentToolUse.name)) {
+                yield {
+                  type: 'tool_use_start',
+                  id: currentToolUse.id,
+                  tool: currentToolUse.name,
+                  params: parsedInput,
+                };
+              }
+
+              currentToolUse = null;
+            }
+          } else if (event.type === 'message_stop') {
+            // Message complete
           }
-        } else if (event.type === 'message_stop') {
-          // Message complete
         }
+      } catch (streamError) {
+        console.error(`[streamAIQuery] Stream error on turn ${agenticTurn}:`, streamError);
+        yield {type: 'error' as const, message: streamError instanceof Error ? streamError.message : 'Stream failed'};
+        return;
       }
 
       // Process pending tool calls
@@ -944,10 +973,31 @@ export async function* streamAIQuery(
             const result = await mcpClient.callTool(toolUse.name, toolArgs);
             console.log(`[streamAIQuery] MCP tool ${toolUse.name} completed in ${Date.now() - toolStart}ms`);
 
-            const products = extractMCPProducts(result);
             const resultContent =
               result.content?.map((c: {text: string}) => c.text).join('\n') ||
               JSON.stringify(result);
+
+            // Detect customer auth required — the MCP client returns this
+            // when a customer-scoped tool is called without authentication
+            if (resultContent.includes('customer_auth_required')) {
+              toolCallInfo.result = 'Customer login required';
+              toolCallInfo.status = 'error';
+              return {
+                toolUse,
+                toolCallInfo,
+                toolResult: {
+                  type: 'tool_result' as const,
+                  tool_use_id: toolUse.id,
+                  content: 'The customer needs to log in to access their account information. Please provide a login link.',
+                  is_error: true,
+                },
+                products: [],
+                cartId: null,
+                authRequired: true,
+              };
+            }
+
+            const products = extractMCPProducts(result);
 
             let cartId: string | null = null;
             if (CART_TOOLS.includes(toolUse.name)) {
@@ -992,6 +1042,14 @@ export async function* streamAIQuery(
 
         // Helper to process MCP tool result (emit events, collect data)
         const processMcpResult = function* (mcpResult: Awaited<ReturnType<typeof executeMcpTool>>) {
+          // Check if customer auth is required for this tool
+          if ('authRequired' in mcpResult && mcpResult.authRequired) {
+            console.log('[streamAIQuery] Customer auth required for tool:', mcpResult.toolUse.name);
+            yield {
+              type: 'auth_required' as const,
+              loginUrl: '/api/auth/login',
+            };
+          }
           if (mcpResult.products.length > 0) {
             allMcpProducts = [...allMcpProducts, ...mcpResult.products];
           }
@@ -1104,46 +1162,52 @@ export async function* streamAIQuery(
         }> = [];
         let currentTextBlock = '';
 
-        for await (const event of stream) {
-          if (event.type === 'content_block_start') {
-            if (event.content_block.type === 'tool_use') {
-              currentToolUse = {
-                id: event.content_block.id,
-                name: event.content_block.name,
-                input: '',
-              };
-            } else if (event.content_block.type === 'text') {
-              currentTextBlock = '';
-            }
-          } else if (event.type === 'content_block_delta') {
-            if (event.delta.type === 'text_delta') {
-              currentTextBlock += event.delta.text;
-              fullResponseText += event.delta.text;
-              yield {type: 'text_delta', delta: event.delta.text};
-            } else if (
-              event.delta.type === 'input_json_delta' &&
-              currentToolUse
-            ) {
-              currentToolUse.input += event.delta.partial_json;
-            }
-          } else if (event.type === 'content_block_stop') {
-            if (currentToolUse) {
-              let parsedInput: Record<string, unknown> = {};
-              try {
-                parsedInput = JSON.parse(
-                  currentToolUse.input || '{}',
-                ) as Record<string, unknown>;
-              } catch {
-                /* noop */
+        try {
+          for await (const event of stream) {
+            if (event.type === 'content_block_start') {
+              if (event.content_block.type === 'tool_use') {
+                currentToolUse = {
+                  id: event.content_block.id,
+                  name: event.content_block.name,
+                  input: '',
+                };
+              } else if (event.content_block.type === 'text') {
+                currentTextBlock = '';
               }
-              pendingToolUses.push({
-                id: currentToolUse.id,
-                name: currentToolUse.name,
-                input: parsedInput,
-              });
-              currentToolUse = null;
+            } else if (event.type === 'content_block_delta') {
+              if (event.delta.type === 'text_delta') {
+                currentTextBlock += event.delta.text;
+                fullResponseText += event.delta.text;
+                yield {type: 'text_delta', delta: event.delta.text};
+              } else if (
+                event.delta.type === 'input_json_delta' &&
+                currentToolUse
+              ) {
+                currentToolUse.input += event.delta.partial_json;
+              }
+            } else if (event.type === 'content_block_stop') {
+              if (currentToolUse) {
+                let parsedInput: Record<string, unknown> = {};
+                try {
+                  parsedInput = JSON.parse(
+                    currentToolUse.input || '{}',
+                  ) as Record<string, unknown>;
+                } catch {
+                  /* noop */
+                }
+                pendingToolUses.push({
+                  id: currentToolUse.id,
+                  name: currentToolUse.name,
+                  input: parsedInput,
+                });
+                currentToolUse = null;
+              }
             }
           }
+        } catch (streamError) {
+          console.error('[streamAIQuery] Retry stream error:', streamError);
+          yield {type: 'error' as const, message: streamError instanceof Error ? streamError.message : 'Retry stream failed'};
+          return;
         }
 
         if (pendingToolUses.length > 0) {

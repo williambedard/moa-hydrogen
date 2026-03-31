@@ -2,11 +2,17 @@
  * MCP Client for Shopify Storefront
  * Connects to the Storefront MCP server to get and call tools.
  *
+ * Supports merging tools from the Customer Account MCP server when
+ * the customer is authenticated. Tool calls are routed to the correct
+ * MCP server based on the tool's `source` tag.
+ *
  * Module-level caching: auth cookies and tools list are cached across
  * requests within the same Cloudflare Workers isolate lifetime.
  */
 
-interface MCPTool {
+import type {CustomerMcpTool, CustomerAccountMcpClient} from './customer-account-mcp.server';
+
+export interface MCPTool {
   name: string;
   description: string;
   input_schema: {
@@ -14,9 +20,11 @@ interface MCPTool {
     properties: Record<string, unknown>;
     required?: string[];
   };
+  /** Which MCP server this tool came from. Defaults to 'storefront'. */
+  source?: 'storefront' | 'customer';
 }
 
-interface MCPToolResult {
+export interface MCPToolResult {
   content: Array<{type: string; text: string}>;
   isError?: boolean;
 }
@@ -76,6 +84,10 @@ export class MCPClient {
   private storefrontMcpEndpoint: string;
   private storeDomain: string;
   private authCookies: string | null = null;
+
+  /** Customer Account MCP client + token for routing customer tool calls */
+  private customerMcpClient: CustomerAccountMcpClient | null = null;
+  private customerAccessToken: string | null = null;
 
   constructor(
     storeDomain: string,
@@ -366,13 +378,30 @@ export class MCPClient {
   }
 
   /**
-   * Call a tool on the MCP server.
-   * If a 401/403 occurs, invalidates auth cache and retries once.
+   * Call a tool on the appropriate MCP server.
+   * Routes to Customer Account MCP for customer-sourced tools,
+   * Storefront MCP for everything else.
+   * If a 401/403 occurs on storefront, invalidates auth cache and retries once.
    */
   async callTool(
     toolName: string,
     toolArgs: Record<string, unknown>,
   ): Promise<MCPToolResult> {
+    // Route customer tools to Customer Account MCP
+    if (this.isCustomerTool(toolName)) {
+      if (!this.customerMcpClient || !this.customerAccessToken) {
+        // Customer not authenticated — signal that auth is needed
+        return {
+          content: [{
+            type: 'text',
+            text: 'customer_auth_required: Please log in to access your account information.',
+          }],
+          isError: true,
+        };
+      }
+      return this.customerMcpClient.callTool(toolName, toolArgs, this.customerAccessToken);
+    }
+
     try {
       const toolStart = Date.now();
       console.log(`[MCP] Calling tool: ${toolName}`, toolArgs);
@@ -446,6 +475,50 @@ export class MCPClient {
         isError: true,
       };
     }
+  }
+
+  /**
+   * Merge Customer Account MCP tools into the tool set.
+   * Call this after the customer authenticates via PKCE OAuth.
+   *
+   * The customer tools are tagged with source: 'customer' and callTool
+   * will route them to the Customer Account MCP server automatically.
+   */
+  mergeCustomerTools(
+    customerTools: CustomerMcpTool[],
+    customerClient: CustomerAccountMcpClient,
+    accessToken: string,
+  ): void {
+    this.customerMcpClient = customerClient;
+    this.customerAccessToken = accessToken;
+
+    // Remove any previously merged customer tools
+    this.tools = this.tools.filter((t) => t.source !== 'customer');
+
+    // Add customer tools
+    const formatted: MCPTool[] = customerTools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.input_schema,
+      source: 'customer' as const,
+    }));
+    this.tools.push(...formatted);
+
+    console.log(`[MCP] Merged ${formatted.length} customer tools. Total: ${this.tools.length}`);
+  }
+
+  /**
+   * Check whether the customer is authenticated (has Customer Account MCP access).
+   */
+  isCustomerAuthenticated(): boolean {
+    return Boolean(this.customerAccessToken && this.customerMcpClient);
+  }
+
+  /**
+   * Check whether a tool name belongs to the Customer Account MCP.
+   */
+  isCustomerTool(toolName: string): boolean {
+    return this.tools.some((t) => t.name === toolName && t.source === 'customer');
   }
 
   /**
@@ -526,6 +599,7 @@ export class MCPClient {
       name: tool.name,
       description: tool.description,
       input_schema: (tool.inputSchema || tool.input_schema) as MCPTool['input_schema'],
+      source: 'storefront' as const,
     }));
   }
 }

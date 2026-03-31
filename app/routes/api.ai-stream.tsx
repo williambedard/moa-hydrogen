@@ -81,8 +81,15 @@ export async function action({request, context}: Route.ActionArgs): Promise<Resp
     }
   }
 
-  const {env, storefront, cart} = context;
+  const {env, storefront, cart, session} = context;
   const storeDomain = `https://${env.PUBLIC_STORE_DOMAIN}`;
+
+  // Check for customer access token (from PKCE OAuth login)
+  const customerAccessToken = session.get('customer_access_token') as string | undefined;
+  const tokenExpiresAt = session.get('customer_token_expires_at') as number | undefined;
+  const validCustomerToken = (customerAccessToken && tokenExpiresAt && Date.now() < tokenExpiresAt)
+    ? customerAccessToken
+    : undefined;
 
   // Get or create cart for context
   let cartData = await cart.get();
@@ -129,6 +136,7 @@ export async function action({request, context}: Route.ActionArgs): Promise<Resp
     disableImageGeneration: env.DISABLE_IMAGE_GENERATION === 'true',
     openaiBaseURL: env.OPENAI_BASE_URL,
     openaiApiKey: env.OPENAI_API_KEY,
+    customerAccessToken: validCustomerToken,
   });
 
   const stream = createSSEStream(generator);

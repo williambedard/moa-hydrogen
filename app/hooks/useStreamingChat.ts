@@ -66,6 +66,7 @@ type StreamEvent =
   | {type: 'thinking_delta'; delta: string}
   | {type: 'intent'; intent: IntentResult}
   | {type: 'cart_updated'; cartId: string}
+  | {type: 'auth_required'; loginUrl: string}
   | {type: 'done'; fullText: string; toolCalls: ToolCallInfo[]}
   | {type: 'error'; message: string};
 
@@ -84,6 +85,9 @@ export interface StreamingState {
   contextUpdate: ContextUpdate | null;
   intent: IntentResult | null;
   cartId: string | null;
+  /** Customer account login required — set when agent needs account access */
+  authRequired: boolean;
+  loginUrl: string | null;
   error: string | null;
   fullText: string | null;
 }
@@ -97,6 +101,8 @@ interface UseStreamingChatReturn {
 const initialState: StreamingState = {
   isStreaming: false,
   isConnected: false,
+  authRequired: false,
+  loginUrl: null,
   streamedText: '',
   thinkingText: '',
   contentBlocks: [],
@@ -335,6 +341,17 @@ function handleEvent(
       }));
       break;
 
+    case 'auth_required':
+      console.log('[useStreamingChat] Customer auth required, login URL:', event.loginUrl);
+      setState((prev) => ({
+        ...prev,
+        authRequired: true,
+        loginUrl: event.loginUrl,
+      }));
+      // Open login popup
+      openAuthPopup(event.loginUrl);
+      break;
+
     case 'done':
       setState((prev) => {
         // Merge server tool calls with client-tracked ones instead of replacing.
@@ -375,4 +392,21 @@ function handleEvent(
       }));
       break;
   }
+}
+
+/**
+ * Open the Customer Account login page in a popup window.
+ * The popup will post a message back when auth completes.
+ */
+function openAuthPopup(loginUrl: string): void {
+  const width = 500;
+  const height = 600;
+  const left = window.screenX + (window.innerWidth - width) / 2;
+  const top = window.screenY + (window.innerHeight - height) / 2;
+
+  window.open(
+    loginUrl,
+    'moa-auth',
+    `width=${width},height=${height},left=${left},top=${top},popup=true`,
+  );
 }

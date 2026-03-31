@@ -24,5 +24,9 @@ declare global {
     IMAGE_GENERATION_URL?: string;
     /** Set to "true" to disable AI header image generation */
     DISABLE_IMAGE_GENERATION?: string;
+    /** OAuth client ID for Customer Account API (from Shopify app TOML or Hydrogen config) */
+    CUSTOMER_ACCOUNT_CLIENT_ID?: string;
+    /** Origin URL of this storefront (e.g. https://moa-demo.com) — used for OAuth redirect URI */
+    CUSTOMER_ACCOUNT_REDIRECT_URI?: string;
   }
 }
