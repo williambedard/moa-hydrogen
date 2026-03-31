@@ -295,8 +295,22 @@ function HomepageContent({
   const rootData = useRouteLoaderData<RootLoader>('root');
   const curatedSectionRef = useRef<HTMLDivElement>(null);
 
-  // Ref to allow hero to submit queries through the streaming pipeline
-  const heroSubmitRef = useRef<((formData: FormData) => void) | null>(null);
+  // Sentinel ref for detecting when hero scrolls out of view
+  const heroSentinelRef = useRef<HTMLDivElement>(null);
+  const [isInHero, setIsInHero] = useState(true);
+
+  // IntersectionObserver: track whether the hero sentinel is visible
+  useEffect(() => {
+    const sentinel = heroSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInHero(entry.isIntersecting),
+      {threshold: 0.1},
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   // Cart state
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -454,11 +468,19 @@ function HomepageContent({
       <main
         className={`min-h-screen bg-[var(--moa-bg)] pb-24 ${selectedProduct ? 'overflow-hidden' : ''}`}
       >
-        {/* Welcome Hero — chat-first landing */}
-        <WelcomeHero
-          title="What's your mechanism?"
-          onSubmit={conversationEnabled ? (formData) => heroSubmitRef.current?.(formData) : undefined}
-        />
+        {/* Welcome Hero — branding + headline, chat input rendered as child */}
+        <WelcomeHero ref={heroSentinelRef} title="What's your mechanism?">
+          {conversationEnabled ? (
+            <StreamingConversationPrompt
+              productContext={productContext}
+              onProductsReceived={setAiProducts}
+              onCuratedHeaderReceived={setAiCuratedHeader}
+              onError={setError}
+              onClearLastViewed={() => { lastViewedProductRef.current = null; }}
+              isInHero={isInHero}
+            />
+          ) : null}
+        </WelcomeHero>
 
         {/* Products Section */}
         <div ref={curatedSectionRef} className="bg-[var(--moa-bg)] min-h-[50vh]">
@@ -505,18 +527,9 @@ function HomepageContent({
           )}
         </div>
 
-        {conversationEnabled ? (
-          <StreamingConversationPrompt
-            productContext={productContext}
-            onProductsReceived={setAiProducts}
-            onCuratedHeaderReceived={setAiCuratedHeader}
-            onError={setError}
-            onClearLastViewed={() => { lastViewedProductRef.current = null; }}
-            submitRef={heroSubmitRef}
-          />
-        ) : (
-          <NonStreamingFallback />
-        )}
+        {/* ConciergePrompt is rendered inside WelcomeHero above.
+            When isInHero=false, it uses position:fixed and visually
+            moves to bottom-right regardless of DOM position. */}
       </main>
     </>
   );
@@ -528,7 +541,7 @@ function StreamingConversationPrompt(props: {
   onCuratedHeaderReceived: (header: CuratedHeaderType | null) => void;
   onError: (error: string | null) => void;
   onClearLastViewed: () => void;
-  submitRef?: React.MutableRefObject<((formData: FormData) => void) | null>;
+  isInHero?: boolean;
 }) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasSearchStarted, setHasSearchStarted] = useState(false);
@@ -556,7 +569,6 @@ function StreamingConversationPrompt(props: {
         {...props}
         onStreamingChange={setIsStreaming}
         onSearchStarted={setHasSearchStarted}
-        submitRef={props.submitRef}
       />
     </>
   );
@@ -570,7 +582,7 @@ function StreamingConversationPromptInner({
   onStreamingChange,
   onSearchStarted,
   onClearLastViewed,
-  submitRef,
+  isInHero,
 }: {
   productContext: ProductContext | null;
   onProductsReceived: (products: Product[] | null) => void;
@@ -579,7 +591,7 @@ function StreamingConversationPromptInner({
   onStreamingChange: (isStreaming: boolean) => void;
   onSearchStarted: (started: boolean) => void;
   onClearLastViewed: () => void;
-  submitRef?: React.MutableRefObject<((formData: FormData) => void) | null>;
+  isInHero?: boolean;
 }) {
   const {
     messages,
@@ -775,17 +787,7 @@ function StreamingConversationPromptInner({
     ],
   );
 
-  // Expose handleSubmit to the hero via ref
-  useEffect(() => {
-    if (submitRef) {
-      submitRef.current = handleSubmit;
-    }
-    return () => {
-      if (submitRef) {
-        submitRef.current = null;
-      }
-    };
-  }, [submitRef, handleSubmit]);
+  // (heroSubmitRef removed — ConciergePrompt is now the hero input directly)
 
   const handleNewChat = useCallback(() => {
     reset();
@@ -893,6 +895,7 @@ function StreamingConversationPromptInner({
       onToggleVoiceMode={voiceMode.toggleVoiceMode}
       onStopSpeaking={voiceMode.stopSpeaking}
       onStartListening={voiceMode.startListening}
+      isInHero={isInHero}
     />
   );
 }
@@ -927,15 +930,6 @@ function HeaderAndCart({
   );
 }
 
-function NonStreamingFallback() {
-  return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <div className="px-4 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
-        AI assistant requires JavaScript
-      </div>
-    </div>
-  );
-}
 
 const DEFAULT_PRODUCTS_QUERY = `#graphql
   query DefaultProducts(

@@ -6,6 +6,7 @@ import {VoiceVisualizer} from './VoiceVisualizer';
 import type {ConversationMessage} from '~/lib/conversation-storage.client';
 import type {ContentBlock} from '~/hooks/useStreamingChat';
 import type {ProductContext} from '~/lib/product-context';
+import {HERO_PROMPTS} from '~/components/WelcomeHero';
 
 const PLACEHOLDER_SUGGESTIONS = [
   'Tell me about creatine stability...',
@@ -50,6 +51,8 @@ interface ConciergePromptProps {
   onToggleVoiceMode?: () => void;
   onStopSpeaking?: () => void;
   onStartListening?: () => void;
+  /** When true, renders centered inline (hero mode) instead of fixed bottom-right */
+  isInHero?: boolean;
 }
 
 export function ConciergePrompt({
@@ -72,10 +75,12 @@ export function ConciergePrompt({
   onToggleVoiceMode,
   onStopSpeaking,
   onStartListening,
+  isInHero = false,
 }: ConciergePromptProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Hero mode is always expanded; widget mode starts expanded too
   const [isExpanded, setIsExpanded] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -137,9 +142,9 @@ export function ConciergePrompt({
     return () => clearInterval(interval);
   }, [isExpanded, placeholders.length]);
 
-  // Close on outside click
+  // Close on outside click (widget mode only)
   useEffect(() => {
-    if (!isExpanded) return;
+    if (!isExpanded || isInHero) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -156,9 +161,9 @@ export function ConciergePrompt({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isExpanded, isLoading, isStreaming, isFocused]);
+  }, [isExpanded, isLoading, isStreaming, isFocused, isInHero]);
 
-  // Close on Escape key
+  // Close on Escape key (widget mode collapses; hero mode only closes conversation)
   useEffect(() => {
     if (!isExpanded) return;
 
@@ -166,7 +171,7 @@ export function ConciergePrompt({
       if (event.key === 'Escape' && !isLoading && !isStreaming) {
         if (showConversation) {
           setShowConversation(false);
-        } else {
+        } else if (!isInHero) {
           setIsExpanded(false);
         }
         inputRef.current?.blur();
@@ -175,7 +180,7 @@ export function ConciergePrompt({
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isExpanded, isLoading, isStreaming, showConversation]);
+  }, [isExpanded, isLoading, isStreaming, showConversation, isInHero]);
 
   const handleFocus = useCallback(() => {
     setIsFocused(true);
@@ -229,10 +234,36 @@ export function ConciergePrompt({
 
   const busy = isLoading || isStreaming;
 
+  // Hero-mode prompt chip handler
+  const handleChipClick = useCallback(
+    (prompt: string) => {
+      if (!onSubmit) return;
+      const formData = new FormData();
+      formData.set('query', prompt);
+      if (historyJson) formData.set('history', historyJson);
+      if (shoppingContextJson) formData.set('shoppingContext', shoppingContextJson);
+      if (productContextJson) formData.set('productContext', productContextJson);
+      onSubmit(formData);
+    },
+    [onSubmit, historyJson, shoppingContextJson, productContextJson],
+  );
+
+  // In hero mode: always expanded, no collapse, centered layout
+  // Ensure expanded when switching to hero mode
+  useEffect(() => {
+    if (isInHero) setIsExpanded(true);
+  }, [isInHero]);
+
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-[110]">
+    <div
+      ref={containerRef}
+      className={isInHero
+        ? 'relative z-[110] w-full max-w-[640px] mx-auto transition-opacity duration-300'
+        : 'fixed bottom-6 right-6 z-[110] transition-[opacity,transform] duration-300'
+      }
+    >
       <AnimatePresence mode="wait">
-        {!isExpanded ? (
+        {!isExpanded && !isInHero ? (
           <motion.button
             key="collapsed"
             layoutId="concierge-container"
@@ -259,7 +290,7 @@ export function ConciergePrompt({
           <motion.div
             key="expanded"
             layoutId="concierge-container"
-            className="relative w-[700px] max-w-[calc(100vw-3rem)]"
+            className={`relative ${isInHero ? 'w-full' : 'w-[700px] max-w-[calc(100vw-3rem)]'}`}
             initial={{opacity: 0}}
             animate={{opacity: 1}}
             exit={{opacity: 0}}
@@ -513,27 +544,44 @@ export function ConciergePrompt({
                     )}
                   </form>
 
-                  {/* Close button */}
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="ml-1 shrink-0 w-8 h-8 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)]"
-                    aria-label="Close"
-                    disabled={busy}
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M18 6L6 18M6 6l12 12"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                  {/* Close button (widget mode only) */}
+                  {!isInHero && (
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="ml-1 shrink-0 w-8 h-8 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)]"
+                      aria-label="Close"
+                      disabled={busy}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M18 6L6 18M6 6l12 12"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </motion.div>
               </div>
             </div>
+            {/* Prompt chips (hero mode only) */}
+            {isInHero && (
+              <div className="flex flex-wrap justify-center gap-2 mt-6">
+                {HERO_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => handleChipClick(prompt)}
+                    className="px-4 py-2 text-sm font-[var(--font-body)] text-[var(--moa-text-secondary)] bg-[var(--moa-surface)] border border-[var(--moa-border)] rounded-full hover:text-[var(--moa-accent)] hover:border-[var(--moa-accent)]/30 transition-all duration-200"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
