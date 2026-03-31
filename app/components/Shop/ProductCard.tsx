@@ -54,33 +54,33 @@ export function ProductCard({
 
   return (
     <button
-      className="block text-left relative appearance-none border-none bg-none p-0 cursor-pointer group focus:outline-2 focus:outline-[#8b7355] focus:outline-offset-4"
+      className="block text-left relative appearance-none border-none bg-none p-0 cursor-pointer group focus:outline-2 focus:outline-[var(--moa-accent)] focus:outline-offset-4 rounded-lg"
       onClick={handleClick}
       type="button"
       aria-label={`View ${product.title}`}
     >
-      <div className="relative w-full aspect-[3/4] overflow-hidden bg-white">
+      <div className="relative w-full aspect-[3/4] overflow-hidden bg-[var(--moa-surface)] rounded-lg border border-[var(--moa-border)] transition-shadow duration-300 group-hover:shadow-[0_0_20px_var(--moa-accent-glow)]">
         {product.image_url ? (
           <img
             alt={product.title}
             src={product.image_url}
             loading={loading}
-            className="w-full h-full object-cover object-top rounded-none transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+            className="w-full h-full object-cover object-top rounded-lg transition-transform duration-500 ease-out group-hover:scale-[1.02]"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#ddd8d2] to-[#e9e5e0]" />
+          <div className="w-full h-full bg-gradient-to-br from-[var(--moa-surface)] to-[var(--moa-surface-elevated)]" />
         )}
         {!product.availableForSale && (
-          <span className="absolute bottom-6 left-6 py-2 px-4 text-[0.65rem] font-medium uppercase tracking-[0.15em] bg-[rgba(44,40,37,0.85)] text-[#e9e5e0] backdrop-blur-[4px]">
+          <span className="absolute bottom-6 left-6 py-2 px-4 text-[0.65rem] font-medium uppercase tracking-[0.15em] bg-[var(--moa-accent-dim)] text-[var(--moa-bg)] backdrop-blur-[4px] rounded">
             Sold out
           </span>
         )}
       </div>
-      <div className="absolute bottom-4 left-4 right-4 py-3 px-4 bg-white rounded-lg">
-        <h4 className="m-0 mb-1 font-[Cormorant_Garamond,Georgia,serif] text-base font-medium text-[#3d3a36] leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+      <div className="mt-3 px-1">
+        <h4 className="m-0 mb-1 font-[var(--font-body)] text-sm font-medium text-[var(--moa-text)] leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
           {product.title}
         </h4>
-        <span className="text-[0.8rem] text-[#6b6560] font-normal tracking-[0.05em]">
+        <span className="text-[0.8rem] text-[var(--moa-text-secondary)] font-[var(--font-mono)] tracking-[0.02em]">
           {product.price}
         </span>
       </div>

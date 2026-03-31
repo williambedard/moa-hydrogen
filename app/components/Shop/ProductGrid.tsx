@@ -8,7 +8,7 @@ interface ProductGridProps {
 export function ProductGrid({products, onSelectProduct}: ProductGridProps) {
   if (products.length === 0) {
     return (
-      <div className="text-center py-24 px-8 text-[#6b6560] font-[Cormorant_Garamond,Georgia,serif] text-xl italic min-h-[50vh] flex items-center justify-center">
+      <div className="text-center py-24 px-8 text-[var(--moa-text-secondary)] font-[var(--font-body)] text-base min-h-[50vh] flex items-center justify-center">
         <p>No products found. Try a different search.</p>
       </div>
     );
@@ -16,7 +16,7 @@ export function ProductGrid({products, onSelectProduct}: ProductGridProps) {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-2 gap-y-8 px-2 py-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 px-4 py-6">
         {products.map((product, index) => (
           <ProductCard
             key={product.id}

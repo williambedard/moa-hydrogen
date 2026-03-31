@@ -25,11 +25,11 @@ function ThinkingIndicator({reduceMotion}: {reduceMotion: boolean | null}) {
         </div>
       </div>
       <div className="flex-1">
-        <div className="inline-flex items-center gap-1 bg-white text-gray-700 rounded-2xl rounded-tl-sm border border-gray-100 px-4 py-3 shadow-sm">
+        <div className="inline-flex items-center gap-1 bg-[var(--moa-surface)] text-[var(--moa-text)] rounded-2xl rounded-tl-sm border border-[var(--moa-border)] px-4 py-3">
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="block w-1.5 h-1.5 rounded-full bg-gray-400"
+              className="block w-1.5 h-1.5 rounded-full bg-[var(--moa-accent)]"
               animate={reduceMotion ? {} : {y: [0, -4, 0]}}
               transition={{
                 duration: 0.6,
@@ -79,14 +79,14 @@ export function ConversationPanel({
       transition={{duration: 0.3, ease: 'easeInOut'}}
       className="overflow-hidden mb-2"
     >
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-[var(--moa-surface-elevated)]/95 backdrop-blur-sm rounded-2xl border border-[var(--moa-border)] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50/50">
-          <span className="text-sm font-medium text-gray-600">Conversation</span>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--moa-border)] bg-[var(--moa-surface)]">
+          <span className="text-sm font-medium text-[var(--moa-text-secondary)]">Conversation</span>
           <button
             type="button"
             onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
+            className="w-6 h-6 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)]"
             aria-label="Close conversation"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
@@ -107,7 +107,7 @@ export function ConversationPanel({
           className="max-h-[50vh] min-h-[200px] overflow-y-auto px-4 py-4 space-y-4"
         >
           {!hasMessages ? (
-            <div className="flex items-center justify-center h-32 text-sm text-gray-400">
+            <div className="flex items-center justify-center h-32 text-sm text-[var(--moa-text-tertiary)]">
               Start a conversation to see messages here
             </div>
           ) : (
@@ -123,7 +123,7 @@ export function ConversationPanel({
                 />
               ))}
 
-              {/* Thinking indicator - shown immediately when streaming starts, before any content */}
+              {/* Thinking indicator */}
               <AnimatePresence>
                 {showThinkingIndicator && (
                   <motion.div

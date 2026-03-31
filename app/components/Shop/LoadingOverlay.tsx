@@ -3,10 +3,10 @@ import {useReducedMotion} from '~/hooks/useReducedMotion';
 import {ConciergeAvatar} from './ConciergeAvatar';
 
 const LOADING_QUOTES = [
-  'Curating a selection that reflects your unique style...',
-  'Finding pieces that speak to your aesthetic...',
-  'Discovering items crafted for your taste...',
-  'Selecting refined options just for you...',
+  'Analyzing formulations...',
+  'Cross-referencing clinical data...',
+  'Searching the catalog...',
+  'Building your recommendation...',
 ];
 
 export function LoadingOverlay() {
@@ -15,7 +15,7 @@ export function LoadingOverlay() {
 
   return (
     <motion.div
-      className="fixed inset-0 bg-[#f5f3ef]/95 backdrop-blur-sm z-[100] flex items-center justify-center"
+      className="fixed inset-0 bg-[var(--moa-bg)]/95 backdrop-blur-sm z-[100] flex items-center justify-center"
       initial={{opacity: 0}}
       animate={{opacity: 1}}
       exit={{opacity: 0}}
@@ -27,7 +27,7 @@ export function LoadingOverlay() {
         animate={{opacity: 1, y: 0}}
         transition={{duration: 0.4, delay: 0.1}}
       >
-        {/* Animated concierge avatar */}
+        {/* Animated molecular avatar */}
         <motion.div
           className="flex justify-center mb-8"
           animate={prefersReducedMotion ? {} : {
@@ -43,7 +43,7 @@ export function LoadingOverlay() {
         </motion.div>
 
         <motion.p
-          className="font-[Cormorant_Garamond,Georgia,serif] text-xl md:text-2xl font-normal italic text-[#3d3a36] leading-relaxed"
+          className="font-[var(--font-body)] text-base md:text-lg text-[var(--moa-text-secondary)] leading-relaxed"
           initial={prefersReducedMotion ? {} : {opacity: 0}}
           animate={{opacity: 1}}
           transition={{duration: 0.4, delay: 0.3}}

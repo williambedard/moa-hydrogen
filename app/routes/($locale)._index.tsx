@@ -18,8 +18,6 @@ import {
   type ProductVariant,
 } from '~/components/Shop';
 import {WelcomeHero} from '~/components/WelcomeHero';
-import heroVideo from '~/assets/a340703cc072495ebbceb4863b8988e7.mp4';
-import heroPoster from '~/assets/welcome-hero-poster.webp';
 import {ClientOnly} from '~/components/ClientOnly';
 import {
   ConversationProvider,
@@ -45,7 +43,7 @@ interface LoaderData {
 }
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'Curate | Discover Your Style'}];
+  return [{title: 'MOA | Mechanism of Action'}];
 };
 
 export async function loader({context}: Route.LoaderArgs): Promise<LoaderData> {
@@ -451,20 +449,17 @@ function HomepageContent({
       </Suspense>
 
       <main
-        className={`min-h-screen bg-[#e9e5e0] pb-24 ${selectedProduct ? 'overflow-hidden' : ''}`}
+        className={`min-h-screen bg-[var(--moa-bg)] pb-24 ${selectedProduct ? 'overflow-hidden' : ''}`}
       >
-        {/* Welcome Hero - always visible */}
+        {/* Welcome Hero — chat-first landing */}
         <WelcomeHero
-          title="Welcome"
-          subtitle="We are trying to rethink what it means to shop online"
-          backgroundVideo={heroVideo}
-          videoPoster={heroPoster}
+          title="What's your mechanism?"
         />
 
         {/* Products Section */}
-        <div ref={curatedSectionRef} className="bg-[#e9e5e0] min-h-[50vh]">
+        <div ref={curatedSectionRef} className="bg-[var(--moa-bg)] min-h-[50vh]">
           {error && (
-            <div className="text-[#8b4513] text-center py-6 px-8 mx-auto my-8 max-w-[500px] bg-[rgba(139,69,19,0.08)] border border-[rgba(139,69,19,0.15)] font-[Cormorant_Garamond,Georgia,serif] text-base italic">
+            <div className="text-[var(--moa-error)] text-center py-6 px-8 mx-auto my-8 max-w-[500px] bg-[var(--moa-surface)] border border-[var(--moa-border)] font-[var(--font-body)] text-sm">
               {error}
             </div>
           )}

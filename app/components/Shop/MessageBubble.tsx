@@ -26,13 +26,10 @@ export function MessageBubble({
   const shouldReduceMotion = useReducedMotion();
   const isUser = role === 'user';
 
-  // Build render blocks: use contentBlocks if available, otherwise fall back
-  // to the legacy layout (content + toolCalls).
   const blocks: ContentBlock[] = contentBlocks && contentBlocks.length > 0
     ? contentBlocks
     : buildLegacyBlocks(content, toolCalls);
 
-  // Check if any tool is still pending (for gating text after pending tools)
   const hasAnyPendingTool = blocks.some(
     (b) => b.type === 'tool' && b.toolCall.status === 'pending',
   );
@@ -49,8 +46,8 @@ export function MessageBubble({
       )}
 
       {isUser && (
-        <div className="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none">
+        <div className="shrink-0 w-8 h-8 rounded-full bg-[var(--moa-user-bubble)] flex items-center justify-center border border-[var(--moa-border)]">
+          <svg className="w-4 h-4 text-[var(--moa-text-secondary)]" viewBox="0 0 24 24" fill="none">
             <path
               d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
               stroke="currentColor"
@@ -67,9 +64,9 @@ export function MessageBubble({
         <div
           className={`max-w-[85%] ${
             isUser
-              ? 'bg-gray-100 text-gray-800 rounded-2xl rounded-tr-sm'
-              : 'bg-white text-gray-700 rounded-2xl rounded-tl-sm border border-gray-100'
-          } px-4 py-2.5 shadow-sm`}
+              ? 'bg-[var(--moa-user-bubble)] text-[var(--moa-text)] rounded-2xl rounded-tr-sm border border-[var(--moa-border)]'
+              : 'bg-[var(--moa-surface)] text-[var(--moa-text)] rounded-2xl rounded-tl-sm border border-[var(--moa-border)]'
+          } px-4 py-2.5`}
         >
           {/* Extended thinking toggle */}
           {thinkingText && (
@@ -77,7 +74,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={() => setShowThinking(!showThinking)}
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
                   <path
@@ -113,7 +110,7 @@ export function MessageBubble({
                     transition={{duration: 0.2}}
                     className="overflow-hidden"
                   >
-                    <div className="mt-2 text-xs italic text-gray-400 bg-gray-50 rounded-lg p-2 max-h-40 overflow-auto whitespace-pre-wrap">
+                    <div className="mt-2 text-xs italic text-[var(--moa-text-tertiary)] bg-[var(--moa-surface-elevated)] rounded-lg p-2 max-h-40 overflow-auto whitespace-pre-wrap border border-[var(--moa-border)]">
                       {thinkingText}
                     </div>
                   </motion.div>
@@ -125,7 +122,6 @@ export function MessageBubble({
           {/* Render content blocks in stream order */}
           {blocks.map((block, i) => {
             if (block.type === 'text') {
-              // A text block after a pending tool should be held back
               const hasPendingToolBefore = blocks
                 .slice(0, i)
                 .some((b) => b.type === 'tool' && b.toolCall.status === 'pending');
@@ -138,7 +134,7 @@ export function MessageBubble({
                 <div key={`text-${i}`} className={`text-sm prose-chat ${!isFirst ? 'mt-3' : ''}`}>
                   <Markdown>{block.text}</Markdown>
                   {isStreaming && isLast && (
-                    <span className="inline-block w-1.5 h-4 bg-gray-400 ml-0.5 animate-pulse" />
+                    <span className="inline-block w-1.5 h-4 bg-[var(--moa-accent)] ml-0.5 animate-pulse" />
                   )}
                 </div>
               );
@@ -163,13 +159,13 @@ export function MessageBubble({
             return null;
           })}
 
-          {/* Activity indicator while tools are pending and text is held back */}
+          {/* Activity indicator while tools are pending */}
           {hasAnyPendingTool && (
             <div className="mt-2 flex items-center gap-1.5">
               {[0, 1, 2].map((i) => (
                 <motion.span
                   key={i}
-                  className="block w-1 h-1 rounded-full bg-gray-400"
+                  className="block w-1 h-1 rounded-full bg-[var(--moa-accent)]"
                   animate={shouldReduceMotion ? {} : {opacity: [0.3, 1, 0.3]}}
                   transition={{
                     duration: 1,
@@ -184,7 +180,7 @@ export function MessageBubble({
 
           {/* Show cursor when streaming with no content yet */}
           {isStreaming && blocks.length === 0 && (
-            <span className="inline-block w-1.5 h-4 bg-gray-400 ml-0.5 animate-pulse" />
+            <span className="inline-block w-1.5 h-4 bg-[var(--moa-accent)] ml-0.5 animate-pulse" />
           )}
         </div>
       </div>
@@ -192,15 +188,10 @@ export function MessageBubble({
   );
 }
 
-/**
- * Build content blocks from legacy message format (content + toolCalls).
- * Used for messages restored from IndexedDB that predate the contentBlocks field.
- */
 function buildLegacyBlocks(content: string, toolCalls?: ToolCallRecord[]): ContentBlock[] {
   const blocks: ContentBlock[] = [];
 
   if (toolCalls && toolCalls.length > 0) {
-    // Legacy layout: all tools first, then content as post-tool text
     for (const tc of toolCalls) {
       blocks.push({type: 'tool', toolCall: tc});
     }

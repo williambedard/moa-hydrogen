@@ -8,25 +8,23 @@ import type {ContentBlock} from '~/hooks/useStreamingChat';
 import type {ProductContext} from '~/lib/product-context';
 
 const PLACEHOLDER_SUGGESTIONS = [
-  'Find me a summer dress...',
-  'I need an outfit for a wedding...',
-  'Show me casual weekend looks...',
-  'Looking for something elegant...',
-  'Find cozy winter essentials...',
-  'I want a bold statement piece...',
-  'Show me minimalist basics...',
-  'Looking for date night outfits...',
+  'Tell me about creatine stability...',
+  'What sets your omega-3 apart?',
+  'Build me a supplement stack...',
+  'How does MOA source ingredients?',
+  'What clinical studies back this?',
+  'Help me optimize recovery...',
 ];
 
 const PRODUCT_PLACEHOLDER_SUGGESTIONS = [
-  'What sizes does this come in?',
-  'What colours are available?',
-  'Is this true to size?',
-  'What material is this made of?',
-  'How should I style this?',
-  'Do you have similar items?',
-  'Is this suitable for summer?',
-  'Can I see matching accessories?',
+  'What clinical data supports this?',
+  'How should I dose this?',
+  'What makes this formulation unique?',
+  'Can I combine this with other supplements?',
+  'What results should I expect?',
+  'How does this compare to competitors?',
+  'Is this third-party tested?',
+  'What are the active ingredients?',
 ];
 
 interface ConciergePromptProps {
@@ -119,7 +117,7 @@ export function ConciergePrompt({
     }
   }, [isStreaming]);
 
-  // Reset placeholder index when placeholders change (switching modes or new AI suggestions)
+  // Reset placeholder index when placeholders change
   useEffect(() => {
     setPlaceholderIndex(0);
   }, [isViewingProduct, suggestedPrompts]);
@@ -239,24 +237,22 @@ export function ConciergePrompt({
             key="collapsed"
             layoutId="concierge-container"
             onClick={handleExpand}
-            className="group relative w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-offset-2 cursor-pointer p-[2px]"
+            className="group relative w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-[var(--moa-accent)] focus:ring-offset-2 focus:ring-offset-[var(--moa-bg)] cursor-pointer bg-[var(--moa-surface)] border border-[var(--moa-accent)]/30"
             style={{
-              background: 'linear-gradient(90deg, #f4c4ce, #d8c4e8, #c4d4f4, #f4c4ce)',
-              backgroundSize: '300% 100%',
-              animation: shouldReduceMotion ? 'none' : 'gradientRotate 6s linear infinite',
+              animation: shouldReduceMotion ? 'none' : 'accentPulse 3s ease-in-out infinite',
             }}
             initial={{scale: 0.8, opacity: 0}}
             animate={{scale: 1, opacity: 1}}
             exit={{scale: 0.8, opacity: 0}}
             transition={springTransition}
-            aria-label="Open AI shopping assistant"
+            aria-label="Open AI assistant"
           >
-            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Ask the AI Concierge
-              <span className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900" />
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--moa-surface-elevated)] text-[var(--moa-text)] text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-[var(--moa-border)]">
+              Ask MOA
+              <span className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-[var(--moa-surface-elevated)]" />
             </span>
-            <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-              <ConciergeAvatar size={52} />
+            <div className="w-full h-full flex items-center justify-center">
+              <ConciergeAvatar size={36} />
             </div>
           </motion.button>
         ) : (
@@ -284,32 +280,16 @@ export function ConciergePrompt({
               )}
             </AnimatePresence>
 
-            {/* Soft glow effect */}
-            <div
-              className="absolute inset-0 rounded-[20px] blur-2xl opacity-40 -z-10"
-              style={{
-                background: 'linear-gradient(90deg, #fdd, #e8d5f0, #dde8fd)',
-              }}
-            />
-
-            {/* Outer gradient border */}
-            <div
-              className="relative rounded-[20px] p-[1px] overflow-hidden"
-              style={{
-                background: 'linear-gradient(90deg, #f4c4ce, #d8c4e8, #c4d4f4, #f4c4ce)',
-                backgroundSize: '300% 100%',
-                animation: shouldReduceMotion ? 'none' : 'gradientRotate 6s linear infinite',
-              }}
-            >
-              {/* White inner container */}
-              <div className="flex items-center bg-white rounded-[19px] pl-2 pr-3 py-2">
+            {/* Input container */}
+            <div className="relative rounded-2xl p-[1px] border border-[var(--moa-border)] bg-[var(--moa-surface)]">
+              <div className="flex items-center rounded-[15px] pl-2 pr-3 py-2">
                 {/* Avatar */}
                 <motion.div
                   className="shrink-0"
                   layoutId="concierge-avatar"
                   transition={springTransition}
                 >
-                  <ConciergeAvatar size={40} />
+                  <ConciergeAvatar size={36} />
                 </motion.div>
 
                 {/* Form */}
@@ -335,8 +315,8 @@ export function ConciergePrompt({
                       <button
                         type="button"
                         onClick={handleToggleConversation}
-                        className={`mr-2 shrink-0 w-8 h-8 flex items-center justify-center transition-colors rounded-lg hover:bg-gray-50 ${
-                          showConversation ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'
+                        className={`mr-2 shrink-0 w-8 h-8 flex items-center justify-center transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)] ${
+                          showConversation ? 'text-[var(--moa-accent)]' : 'text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)]'
                         }`}
                         aria-label={showConversation ? 'Hide conversation' : 'Show conversation'}
                         title={showConversation ? 'Hide conversation' : 'Show conversation'}
@@ -358,7 +338,7 @@ export function ConciergePrompt({
                       <button
                         type="button"
                         onClick={handleNewChat}
-                        className="mr-2 shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50"
+                        className="mr-2 shrink-0 w-8 h-8 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)]"
                         aria-label="New chat"
                         title="Start new conversation"
                       >
@@ -379,8 +359,8 @@ export function ConciergePrompt({
                       <button
                         type="button"
                         onClick={onToggleVoiceMode}
-                        className={`mr-2 shrink-0 w-8 h-8 flex items-center justify-center transition-colors rounded-lg hover:bg-gray-50 ${
-                          isVoiceMode ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'
+                        className={`mr-2 shrink-0 w-8 h-8 flex items-center justify-center transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)] ${
+                          isVoiceMode ? 'text-[var(--moa-accent)]' : 'text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)]'
                         }`}
                         aria-label={isVoiceMode ? 'Switch to text input' : 'Switch to voice input'}
                         title={isVoiceMode ? 'Switch to text input' : 'Switch to voice input'}
@@ -410,31 +390,31 @@ export function ConciergePrompt({
                         <div className="flex-1 flex items-center min-w-0">
                           {voiceState === 'listening' && (
                             <div className="flex items-center gap-2 flex-1">
-                              <span className="voice-recording-dot shrink-0 w-2 h-2 rounded-full bg-red-500" />
+                              <span className="voice-recording-dot shrink-0 w-2 h-2 rounded-full bg-[var(--moa-error)]" />
                               <VoiceVisualizer audioLevel={audioLevel} isActive className="flex-1" />
-                              <span className="text-xs text-gray-400 shrink-0">Listening...</span>
+                              <span className="text-xs text-[var(--moa-text-tertiary)] shrink-0">Listening...</span>
                             </div>
                           )}
                           {voiceState === 'processing' && (
                             <div className="flex items-center gap-2 flex-1">
-                              <svg className="w-4 h-4 animate-spin text-pink-400 shrink-0" viewBox="0 0 24 24" fill="none">
+                              <svg className="w-4 h-4 animate-spin text-[var(--moa-accent)] shrink-0" viewBox="0 0 24 24" fill="none">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                               </svg>
-                              <span className="text-sm text-gray-500">Processing...</span>
+                              <span className="text-sm text-[var(--moa-text-secondary)]">Processing...</span>
                             </div>
                           )}
                           {voiceState === 'speaking' && (
                             <div className="flex items-center gap-2 flex-1">
                               <VoiceVisualizer audioLevel={audioLevel} isActive className="flex-1" />
-                              <span className="text-xs text-gray-400 shrink-0">Speaking...</span>
+                              <span className="text-xs text-[var(--moa-text-tertiary)] shrink-0">Speaking...</span>
                             </div>
                           )}
                           {voiceState === 'idle' && (
                             <button
                               type="button"
                               onClick={onStartListening}
-                              className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                              className="flex items-center gap-2 text-sm text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors"
                             >
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                                 <path
@@ -462,7 +442,7 @@ export function ConciergePrompt({
                           <button
                             type="button"
                             onClick={onStopSpeaking}
-                            className="ml-2 shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-gray-50"
+                            className="ml-2 shrink-0 w-8 h-8 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-error)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)]"
                             aria-label="Stop speaking"
                             title="Stop speaking"
                           >
@@ -480,7 +460,7 @@ export function ConciergePrompt({
                           name="query"
                           type="text"
                           placeholder={placeholders[placeholderIndex]}
-                          className={`ai-input flex-1 min-w-0 text-[15px] bg-transparent text-gray-700 placeholder:text-gray-400 placeholder:transition-opacity placeholder:duration-200 ${
+                          className={`ai-input flex-1 min-w-0 text-[15px] placeholder:transition-opacity placeholder:duration-200 ${
                             isAnimating ? 'placeholder:opacity-0' : 'placeholder:opacity-100'
                           }`}
                           disabled={busy}
@@ -497,7 +477,7 @@ export function ConciergePrompt({
 
                         <button
                           type="submit"
-                          className="ml-2 shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50 disabled:opacity-40"
+                          className="ml-2 shrink-0 w-8 h-8 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-accent)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)] disabled:opacity-40"
                           disabled={busy}
                           aria-label="Submit"
                         >
@@ -537,7 +517,7 @@ export function ConciergePrompt({
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="ml-1 shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50"
+                    className="ml-1 shrink-0 w-8 h-8 flex items-center justify-center text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors rounded-lg hover:bg-[var(--moa-surface-elevated)]"
                     aria-label="Close"
                     disabled={busy}
                   >
@@ -560,12 +540,6 @@ export function ConciergePrompt({
 
       {/* Responsive styles */}
       <style>{`
-        @media (min-width: 640px) {
-          .fixed.bottom-6.right-6 > div:last-child {
-            width: calc(100vw - 3rem);
-            max-width: 700px;
-          }
-        }
         @media (max-width: 639px) {
           .fixed.bottom-6.right-6 {
             right: 1rem;

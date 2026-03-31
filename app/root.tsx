@@ -60,6 +60,15 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
+    {
+      rel: 'preconnect',
+      href: 'https://fonts.googleapis.com',
+    },
+    {
+      rel: 'preconnect',
+      href: 'https://fonts.gstatic.com',
+      crossOrigin: 'anonymous' as const,
+    },
     {rel: 'icon', type: 'image/svg+xml', href: favicon},
   ];
 }
