@@ -254,25 +254,21 @@ export function ConciergePrompt({
     if (isInHero) setIsExpanded(true);
   }, [isInHero]);
 
-  // Position variants: centered in viewport (hero) vs bottom-right (widget)
-  // Both use position:fixed — the spring animation interpolates between them.
-  // Hero: right:50% + translateX(50%) centers horizontally;
-  //        bottom:50% + translateY(50%) centers vertically.
-  const positionVariants = {
-    hero: {right: '50%', bottom: '50%', x: '50%', y: '50%'},
-    widget: {right: 24, bottom: 24, x: 0, y: 0},
-  };
-  const positionTransition = shouldReduceMotion
-    ? {duration: 0}
-    : {type: 'spring' as const, stiffness: 200, damping: 25};
+  const fadeDuration = shouldReduceMotion ? 0 : 0.25;
 
   return (
+    <AnimatePresence mode="wait">
     <motion.div
       ref={containerRef}
-      className={`fixed z-[110] ${isInHero ? 'w-full max-w-[640px]' : 'w-[700px] max-w-[calc(100vw-3rem)]'}`}
-      animate={isInHero ? 'hero' : 'widget'}
-      variants={positionVariants}
-      transition={positionTransition}
+      key={isInHero ? 'hero' : 'widget'}
+      className={isInHero
+        ? 'fixed z-[110] w-full max-w-[640px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'
+        : 'fixed z-[110] w-[700px] max-w-[calc(100vw-3rem)] bottom-6 right-6'
+      }
+      initial={{opacity: 0}}
+      animate={{opacity: 1}}
+      exit={{opacity: 0}}
+      transition={{duration: fadeDuration}}
     >
       <AnimatePresence mode="wait">
         {!isExpanded && !isInHero ? (
@@ -607,5 +603,6 @@ export function ConciergePrompt({
       </AnimatePresence>
 
     </motion.div>
+    </AnimatePresence>
   );
 }
