@@ -340,11 +340,20 @@ export async function* streamAIQuery(
     });
 
     // Initialize MCP client and get tools (uses module-level cache)
+    // MCP is optional — if it fails (no storefront MCP, no password, etc.)
+    // the AI still works but without product search/cart tools.
     const mcpStart = Date.now();
-    console.log('[streamAIQuery] Connecting to MCP...');
-    const mcpClient = new MCPClient(storeDomain, storePassword);
-    const mcpTools = await mcpClient.connect();
-    console.log(`[streamAIQuery] MCP connected in ${Date.now() - mcpStart}ms, tools: ${mcpTools.length}`);
+    let mcpClient: MCPClient | null = null;
+    let mcpTools: Array<{name: string; description: string; input_schema: Record<string, unknown>}> = [];
+    try {
+      console.log('[streamAIQuery] Connecting to MCP...');
+      mcpClient = new MCPClient(storeDomain, storePassword);
+      mcpTools = await mcpClient.connect();
+      console.log(`[streamAIQuery] MCP connected in ${Date.now() - mcpStart}ms, tools: ${mcpTools.length}`);
+    } catch (mcpError) {
+      console.warn(`[streamAIQuery] MCP connection failed (non-fatal): ${mcpError instanceof Error ? mcpError.message : mcpError}`);
+      console.warn('[streamAIQuery] Continuing without MCP tools — AI will respond conversationally');
+    }
 
     const hasHistory = Boolean(
       conversationHistory && conversationHistory.length > 0,
@@ -928,6 +937,9 @@ export async function* streamAIQuery(
           }
 
           try {
+            if (!mcpClient) {
+              throw new Error('MCP not connected — cannot call tool');
+            }
             const toolStart = Date.now();
             const result = await mcpClient.callTool(toolUse.name, toolArgs);
             console.log(`[streamAIQuery] MCP tool ${toolUse.name} completed in ${Date.now() - toolStart}ms`);
@@ -1234,6 +1246,9 @@ export async function* streamAIQuery(
             }
 
             try {
+              if (!mcpClient) {
+                throw new Error('MCP not connected — cannot call tool');
+              }
               const result = await mcpClient.callTool(tu.name, toolArgs);
               const rc =
                 result.content?.map((c: {text: string}) => c.text).join('\n') ||
