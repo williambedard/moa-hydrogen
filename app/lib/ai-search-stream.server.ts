@@ -39,7 +39,6 @@ function isVirtualTool(name: string): boolean {
 const INVISIBLE_VIRTUAL_TOOLS = new Set([
   '_concierge_suggest_prompts',
   '_concierge_update_context',
-  '_concierge_set_intent',
 ]);
 
 function isInvisibleVirtualTool(name: string): boolean {
@@ -48,51 +47,9 @@ function isInvisibleVirtualTool(name: string): boolean {
 
 const VIRTUAL_TOOLS: Anthropic.Tool[] = [
   {
-    name: '_concierge_curate_content',
-    description:
-      'REQUIRED after every product search. Sets the curated header title and subtitle for the product results grid.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        title: {
-          type: 'string',
-          description:
-            'Engaging title for the results, e.g. "Elegant Wedding Guest Dresses"',
-        },
-        subtitle: {
-          type: 'string',
-          description: 'Short subtitle adding context',
-        },
-      },
-      required: ['title', 'subtitle'],
-      additionalProperties: false,
-    },
-    // @ts-expect-error strict is valid in SDK 0.74+ but not yet in types
-    strict: true,
-  },
-  {
-    name: '_concierge_generate_image',
-    description:
-      'REQUIRED after _concierge_curate_content. Generates a luxury editorial background image for the curated header. Call with a vivid scene description. Skip (empty prompt) if unsure.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        image_prompt: {
-          type: 'string',
-          description:
-            'Luxury editorial scene description for image generation, e.g. "elegant high heels on marble surface, soft golden lighting". Empty string to skip image generation.',
-        },
-      },
-      required: ['image_prompt'],
-      additionalProperties: false,
-    },
-    // @ts-expect-error strict is valid in SDK 0.74+ but not yet in types
-    strict: true,
-  },
-  {
     name: '_concierge_select_products',
     description:
-      'REQUIRED after every product search. Selects which products to show in the UI grid. Use the product IDs from search results.',
+      'After a product search, call this to display product cards in the chat. Pass the product IDs you want to recommend.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -106,13 +63,11 @@ const VIRTUAL_TOOLS: Anthropic.Tool[] = [
       required: ['product_ids'],
       additionalProperties: false,
     },
-    // @ts-expect-error strict is valid in SDK 0.74+ but not yet in types
-    strict: true,
   },
   {
     name: '_concierge_suggest_prompts',
     description:
-      'Provide 4-6 follow-up prompts. Call after showing products or when the user is viewing a product.',
+      'Suggest 3-4 follow-up questions the user might want to ask.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -125,21 +80,18 @@ const VIRTUAL_TOOLS: Anthropic.Tool[] = [
       required: ['prompts'],
       additionalProperties: false,
     },
-    // @ts-expect-error strict is valid in SDK 0.74+ but not yet in types
-    strict: true,
   },
   {
     name: '_concierge_update_context',
     description:
-      'Record NEW shopping preferences or constraints the user just mentioned. Only include changed fields.',
+      'Record shopping preferences the user mentioned (goals, budget, dietary needs, etc.).',
     input_schema: {
       type: 'object' as const,
       properties: {
         preferences: {
           type: 'object',
           properties: {
-            colors: {type: 'array', items: {type: 'string'}},
-            sizes: {type: 'array', items: {type: 'string'}},
+            categories: {type: 'array', items: {type: 'string'}},
             budget: {
               type: 'object',
               properties: {
@@ -149,10 +101,8 @@ const VIRTUAL_TOOLS: Anthropic.Tool[] = [
               },
               additionalProperties: false,
             },
-            occasion: {type: 'string'},
-            style: {type: 'array', items: {type: 'string'}},
-            categories: {type: 'array', items: {type: 'string'}},
-            brands: {type: 'array', items: {type: 'string'}},
+            goals: {type: 'array', items: {type: 'string'}},
+            dietary: {type: 'array', items: {type: 'string'}},
           },
           additionalProperties: false,
         },
@@ -160,41 +110,9 @@ const VIRTUAL_TOOLS: Anthropic.Tool[] = [
           type: 'array',
           items: {type: 'string'},
         },
-        rejectedProducts: {
-          type: 'array',
-          items: {type: 'string'},
-        },
-        likedProducts: {
-          type: 'array',
-          items: {type: 'string'},
-        },
       },
       additionalProperties: false,
     },
-  },
-  {
-    name: '_concierge_set_intent',
-    description:
-      'MUST be the LAST tool called in every response. Indicates response type.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        type: {
-          type: 'string',
-          enum: ['product_search', 'cart_action', 'product_inquiry', 'general'],
-          description: 'The type of response',
-        },
-        show_products: {
-          type: 'boolean',
-          description:
-            'true only if you searched and want to update the product grid',
-        },
-      },
-      required: ['type', 'show_products'],
-      additionalProperties: false,
-    },
-    // @ts-expect-error strict is valid in SDK 0.74+ but not yet in types
-    strict: true,
   },
 ];
 
@@ -428,17 +346,9 @@ export async function* streamAIQuery(
     let allMcpProducts: MCPProduct[] = [];
 
     // Captured data from virtual tools
-    let capturedCuratedHeader: {title: string; subtitle: string} | null = null;
-    let capturedImageUrl: string | null = null;
     let capturedSelectedIds: string[] | null = null;
     let capturedSuggestedPrompts: string[] | null = null;
     let capturedContextUpdate: ContextUpdate | null = null;
-    let capturedIntent: IntentResult | null = null;
-
-    // Track background image generation promise (non-blocking)
-    let pendingImagePromise: Promise<string | null> | null = null;
-    let pendingImageToolCallInfo: ToolCallInfo | null = null;
-    let pendingImageToolId: string | null = null;
 
     // Track whether inline enrichment already emitted products
     let productsEmittedInline = false;
@@ -623,100 +533,7 @@ export async function* streamAIQuery(
         for (const toolUse of pendingToolUses) {
           // --- Intercept virtual tools ---
           if (isVirtualTool(toolUse.name)) {
-            // "Visible" virtual tools — emit tool_use_start/end SSE events
-            // so the conversation UI shows them, but still processed server-side.
-            if (toolUse.name === '_concierge_curate_content') {
-              const title = String(toolUse.input.title || '');
-              const subtitle = String(toolUse.input.subtitle || '');
-              capturedCuratedHeader = {title, subtitle};
-
-              // Track in allToolCalls so it shows in conversation
-              const toolCallInfo: ToolCallInfo = {
-                id: toolUse.id,
-                tool: toolUse.name,
-                params: toolUse.input,
-                status: 'pending',
-              };
-              allToolCalls.push(toolCallInfo);
-
-              // tool_use_start already emitted during stream (content_block_stop)
-
-              const resultMsg = `Curated header set: "${title}" — "${subtitle}"`;
-              toolCallInfo.result = resultMsg;
-              toolCallInfo.status = 'complete';
-
-              yield {
-                type: 'tool_use_end',
-                id: toolUse.id,
-                tool: toolUse.name,
-                result: resultMsg,
-              };
-
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: toolUse.id,
-                content: 'OK',
-              });
-              continue;
-            }
-
-            if (toolUse.name === '_concierge_generate_image') {
-              const imagePrompt = String(toolUse.input.image_prompt || '');
-
-              // Track in allToolCalls so it shows in conversation
-              const toolCallInfo: ToolCallInfo = {
-                id: toolUse.id,
-                tool: toolUse.name,
-                params: toolUse.input,
-                status: 'pending',
-              };
-              allToolCalls.push(toolCallInfo);
-
-              // tool_use_start already emitted during stream (content_block_stop)
-
-              if (
-                imagePrompt &&
-                imageGenerationUrl &&
-                openaiApiKey &&
-                !disableImageGeneration
-              ) {
-                // Start image generation as a non-blocking background promise
-                console.log(
-                  '[streamAIQuery] Starting non-blocking header image generation',
-                );
-                pendingImagePromise = generateHeaderImage(
-                  imagePrompt,
-                  imageGenerationUrl,
-                  openaiApiKey,
-                );
-                pendingImageToolCallInfo = toolCallInfo;
-                pendingImageToolId = toolUse.id;
-                // Don't emit tool_use_end yet — will emit when image promise resolves
-              } else {
-                // No image generation needed — complete immediately
-                const resultMsg = imagePrompt
-                  ? 'Image generation not available — header will render without image'
-                  : 'No image prompt provided — skipping image generation';
-                toolCallInfo.result = resultMsg;
-                toolCallInfo.status = 'complete';
-                yield {
-                  type: 'tool_use_end',
-                  id: toolUse.id,
-                  tool: toolUse.name,
-                  result: resultMsg,
-                };
-              }
-
-              // Return OK to Claude immediately so the agentic loop continues
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: toolUse.id,
-                content: 'OK',
-              });
-              continue;
-            }
-
-            // --- _concierge_select_products: visible tool with inline enrichment ---
+            // --- _concierge_select_products: enrich and emit product cards ---
             if (toolUse.name === '_concierge_select_products') {
               capturedSelectedIds = Array.isArray(
                 toolUse.input.product_ids,
@@ -724,7 +541,6 @@ export async function* streamAIQuery(
                 ? (toolUse.input.product_ids as string[])
                 : null;
 
-              // Track in allToolCalls so it shows in conversation
               const toolCallInfo: ToolCallInfo = {
                 id: toolUse.id,
                 tool: toolUse.name,
@@ -732,22 +548,6 @@ export async function* streamAIQuery(
                 status: 'pending',
               };
               allToolCalls.push(toolCallInfo);
-
-              // tool_use_start already emitted during stream (content_block_stop)
-
-              // Emit curated header immediately (without image — it may still be generating)
-              if (capturedCuratedHeader) {
-                console.log(
-                  '[streamAIQuery] Emitting curated_products_header inline (without image)',
-                );
-                yield {
-                  type: 'curated_products_header',
-                  title: capturedCuratedHeader.title,
-                  subtitle: capturedCuratedHeader.subtitle,
-                  // Include imageUrl only if already available
-                  ...(capturedImageUrl ? {imageUrl: capturedImageUrl} : {}),
-                };
-              }
 
               // Inline enrichment: filter by ID, enrich, emit products NOW
               let enrichResultMsg: string;
@@ -855,23 +655,7 @@ export async function* streamAIQuery(
                 }
                 break;
               }
-              case '_concierge_set_intent': {
-                const intentType = toolUse.input.type as string;
-                if (
-                  [
-                    'product_search',
-                    'cart_action',
-                    'product_inquiry',
-                    'general',
-                  ].includes(intentType)
-                ) {
-                  capturedIntent = {
-                    type: intentType as IntentType,
-                    showProducts: toolUse.input.show_products === true,
-                  };
-                }
-                break;
-              }
+              // _concierge_set_intent removed — no longer needed
             }
             // Invisible virtual tools: return OK to Claude, no SSE events
             toolResults.push({
@@ -1238,24 +1022,8 @@ export async function* streamAIQuery(
           }> = [];
 
           for (const tu of pendingToolUses) {
-            // Virtual tools
+            // Virtual tools — return OK immediately
             if (isVirtualTool(tu.name)) {
-              if (tu.name === '_concierge_set_intent') {
-                const it = tu.input.type as string;
-                if (
-                  [
-                    'product_search',
-                    'cart_action',
-                    'product_inquiry',
-                    'general',
-                  ].includes(it)
-                ) {
-                  capturedIntent = {
-                    type: it as IntentType,
-                    showProducts: tu.input.show_products === true,
-                  };
-                }
-              }
               toolResults.push({
                 type: 'tool_result',
                 tool_use_id: tu.id,
@@ -1375,42 +1143,7 @@ export async function* streamAIQuery(
       yield {type: 'context_update', update: capturedContextUpdate};
     }
 
-    if (capturedIntent) {
-      yield {type: 'intent', intent: capturedIntent};
-    }
-
-    // Await pending image generation before emitting final events
-    if (pendingImagePromise) {
-      console.log('[streamAIQuery] Awaiting pending background image generation...');
-      const imageStart = Date.now();
-      const imageResult = await pendingImagePromise;
-      console.log(`[streamAIQuery] Image generation awaited in ${Date.now() - imageStart}ms (was running in background)`);
-      if (imageResult) {
-        capturedImageUrl = imageResult;
-        console.log('[streamAIQuery] Background image generation succeeded');
-      } else {
-        console.log('[streamAIQuery] Background image generation returned null');
-      }
-
-      // Emit tool_use_end for the image generation
-      if (pendingImageToolCallInfo && pendingImageToolId) {
-        const resultMsg = imageResult
-          ? 'Image generated successfully'
-          : 'Image generation failed or timed out — header will render without image';
-        pendingImageToolCallInfo.result = resultMsg;
-        pendingImageToolCallInfo.status = imageResult ? 'complete' : 'error';
-        yield {
-          type: 'tool_use_end',
-          id: pendingImageToolId,
-          tool: '_concierge_generate_image',
-          result: resultMsg,
-        };
-      }
-    }
-
     // Safety fallback: enrich and emit products if they weren't already emitted inline.
-    // This handles the edge case where Claude didn't call _concierge_select_products
-    // but we still have MCP products (e.g., from a search without selection).
     if (!productsEmittedInline && allMcpProducts.length > 0) {
       console.log(
         '[streamAIQuery] Fallback: products not emitted inline, enriching post-stream.',
@@ -1443,41 +1176,10 @@ export async function* streamAIQuery(
       );
       console.log(`[streamAIQuery] Fallback product enrichment took ${Date.now() - enrichStart}ms`);
       if (enrichedProducts.length > 0) {
-        if (capturedCuratedHeader) {
-          yield {
-            type: 'curated_products_header',
-            title: capturedCuratedHeader.title,
-            subtitle: capturedCuratedHeader.subtitle,
-            ...(capturedImageUrl ? {imageUrl: capturedImageUrl} : {}),
-          };
-        }
         yield {type: 'curated_products', products: enrichedProducts};
       }
     } else if (!productsEmittedInline) {
       console.log('[streamAIQuery] No MCP products found');
-    }
-
-    // If products were emitted inline but the image wasn't ready yet,
-    // re-emit the header with the image URL now that it's available.
-    if (
-      productsEmittedInline &&
-      capturedImageUrl &&
-      capturedCuratedHeader
-    ) {
-      // Check if we already sent the header with image during inline enrichment
-      // (capturedImageUrl was set before _concierge_select_products ran).
-      // We always re-emit here to ensure the client has the latest image URL,
-      // since image generation may have been non-blocking and completed after
-      // the initial header was emitted.
-      console.log(
-        '[streamAIQuery] Re-emitting curated_products_header with image URL',
-      );
-      yield {
-        type: 'curated_products_header',
-        title: capturedCuratedHeader.title,
-        subtitle: capturedCuratedHeader.subtitle,
-        imageUrl: capturedImageUrl,
-      };
     }
 
     console.log(`[streamAIQuery] Total stream duration: ${Date.now() - totalStart}ms`);
@@ -1532,80 +1234,32 @@ export function buildSystemPrompt(
   productBlock: string,
   cartIdNote: string,
 ): string {
-  return `You are a warm, knowledgeable concierge for MOA (Mechanism of Action), a premium supplement brand. You are an expert in sports nutrition, supplementation science, and evidence-based performance optimization. Help customers find the right supplements and build personalized protocols.
+  return `You are the concierge at MOA (Mechanism of Action), a premium supplement brand built on clinical evidence and transparency. You're an expert in sports nutrition, supplementation science, and evidence-based performance optimization — like a well-read friend who happens to know everything about supplements.
 
-STORE CONTEXT:
-MOA is a supplement brand focused on clinical-grade, evidence-backed products. The catalog includes creatine, omega-3, and other performance/health supplements. When searching, use specific product terms (e.g. "creatine", "omega", "fish oil") rather than broad terms like "all products" — the search works best with targeted queries.
+WHO YOU ARE:
+- Knowledgeable, warm, and honest. You cite studies when relevant but keep it conversational.
+- You work at a small, curated supplement brand — not a department store. MOA focuses on doing a few things exceptionally well.
+- You can discuss supplementation science, training protocols, nutrition, and wellness even when the user isn't shopping. That's part of being helpful.
+- If MOA doesn't carry what the user needs, say so honestly and suggest what you do have that might help.
 
-STYLE:
-- Be conversational — a short acknowledgment before searching is fine ("Let me find some shoes for you!"), but keep it to ONE short sentence max.
-- Keep responses brief. After tools complete, give a short 1-2 sentence summary and ask a follow-up to refine needs.
-- NEVER list products, prices, or product names in text — the UI shows a visual product grid. The user will SEE the products.
-- NEVER narrate your tool usage ("Let me curate these", "Now let me set up the display"). Just call the tools silently.
-- You're a knowledgeable personal shopper, not a search engine.
-${
-  hasHistory
-    ? `
-MULTI-TURN: The user may reference previous queries. Interpret follow-ups ("show me those in red", "a smaller size?") using conversation context. Search with both original criteria and the new refinement.
-`
-    : ''
-}${contextBlock}${productBlock}${cartIdNote}
+THE STORE:
+- MOA sells clinical-grade, evidence-backed supplements: creatine (Creapure-certified), omega-3, and a growing catalog of performance/health products.
+- The catalog is intentionally small. If a search comes back empty, don't panic — just let the user know naturally and pivot to what you can help with.
+- Products show up as interactive cards in the chat (users can add to cart directly from them). You don't need to list prices or product names — just describe what you found conversationally.
+${hasHistory ? '\nYou are in an ongoing conversation. Use context from earlier messages to interpret follow-ups naturally.\n' : ''}${contextBlock}${productBlock}${cartIdNote}
 
-RULE 1 — ALWAYS SEARCH BEFORE RESPONDING:
-You do NOT know what this store sells. ALWAYS call the search tool before responding to any product request. NEVER say "we don't carry that" without searching first.
-- Call search_shop_catalog ONCE per query. Do NOT re-search the same query with different parameters.
-- IMPORTANT: Always pass BOTH "query" AND "context" arguments to search_shop_catalog. The "context" field is a short sentence explaining why you're searching (e.g. "User wants to build a supplement stack"). Omitting context will return empty results.
-- After getting search results, IMMEDIATELY call the _concierge_* tools (Rule 5). Do NOT write text about the results first — call the tools, THEN write your brief summary.
-- CRITICAL: After all tool calls complete, you MUST write a conversational text response (1-2 sentences). Summarize what you found and ask a follow-up question. NEVER end your turn with only tool calls and no text — the user needs a human response.
+HOW TO USE YOUR TOOLS:
+You have access to the store's catalog and cart through tools. Use them naturally — they're invisible to the user.
 
-RULE 2 — ALWAYS CALL get_product_details FOR PRODUCT QUESTIONS:
-When a <current_product> or <last_viewed_product> block is present, it tells you WHICH product the user is viewing but does NOT contain enough detail to answer questions. The context block only has general info (title, price range, option names).
+Searching: When the user asks about a product, search for it using search_shop_catalog. Always pass both "query" and "context" arguments (the MCP requires "context" — a short sentence about why you're searching). Use specific terms ("creatine", "omega-3") rather than broad ones ("all products").
 
-You MUST call get_product_details with the product handle BEFORE answering ANY question about a product, including:
-- "What sizes/colours are available?"
-- "Is this in stock in size 8?"
-- "How much is the large?"
-- "Tell me more about this"
-- "What's it made of?"
-- ANY question about specific variants, availability, pricing, materials, or details
+Showing products: After a search with results, call _concierge_select_products with the product IDs. This makes product cards appear in the chat. Then write a conversational response about what you found.
 
-Do NOT answer product questions from the context block alone — ALWAYS fetch fresh data first.
+Product details: If the user asks specific questions (ingredients, dosage, availability), use get_product_details to get fresh data before answering.
 
-RULE 3 — PRODUCT CONTEXT PRIORITY:
-- <current_product> = the product the user is actively viewing. "This product", "this one" = this product.
-- <last_viewed_product> = user recently closed the detail view. Use for follow-ups like "add it to my cart".
-- If NEITHER is present, ask for clarification if the user references "this product".
-- Context block ALWAYS overrides conversation history for product details. History may reference old products — ignore those details.
+Cart: Use get_cart to check contents, update_cart to add/remove/change quantities. To add an item, get the variant ID from get_product_details first. Never fabricate IDs — always get them from tools. When you modify the cart, actually call the tools — don't just say you did.
 
-RULE 4 — CART OPERATIONS (MANDATORY TOOL USAGE):
-Text responses do NOT modify the cart. Only tools do. You MUST follow these rules without exception:
-
-get_cart: MUST be called BEFORE answering any question about cart contents. NEVER guess, remember, or assume what's in the cart.
-
-update_cart: The ONLY way to modify the cart. Handles adds, quantity changes, and removals.
-
-WORKFLOWS:
-A) ADD item → get_product_details (get variant_id) → update_cart (with variant_id + quantity)
-B) UPDATE quantity → get_cart (get line_id) → update_cart (with line_id + new quantity)
-C) REMOVE item → get_cart (get line_id) → update_cart (with line_id + quantity: 0)
-
-CRITICAL: When the user confirms ("yes", "go ahead", "add it"), you MUST call the tools. Do NOT just say you did it — actually call them. If you claim a cart action without calling update_cart, you have lied to the user.
-
-NEVER fabricate variant IDs or line IDs. ALWAYS get them fresh from tools.
-
-RULE 5 — CONCIERGE TOOLS:
-You have six _concierge_* tools for structured metadata. Never mention these to the user.
-
-After every product search, IMMEDIATELY call these tools (before writing any text about results):
-1. _concierge_curate_content — REQUIRED. Set an engaging header title + subtitle for the results grid.
-2. _concierge_generate_image — REQUIRED. Generate a luxury editorial background image for the header. Provide a vivid scene description as image_prompt. Use empty string to skip.
-3. _concierge_select_products — REQUIRED. List product IDs (from search results) to display, in preferred order.
-Then write a brief 1-2 sentence summary (NO product names or prices — the grid shows those).
-
-Other tools:
-4. _concierge_suggest_prompts — Provide 4-6 follow-up prompts after showing products or when viewing a product.
-5. _concierge_update_context — Record NEW shopping preferences/constraints. Only changed fields.
-6. _concierge_set_intent — MUST be the LAST tool called in EVERY response. Indicates intent type + whether to show products.`;
+ALWAYS end your turn with text. Never finish with only tool calls — the user needs a response.`;
 }
 
 /**
