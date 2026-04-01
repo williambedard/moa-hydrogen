@@ -345,6 +345,8 @@ export async function* streamAIQuery(
       baseURL,
       defaultHeaders: {
         'X-Shopify-Session-Affinity-Header': 'conversation-id',
+        'X-Shopify-LLM-Container': 'moa-storefront',
+        'X-Shopify-LLM-Attribution': 'product-discovery',
       },
     });
 
