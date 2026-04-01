@@ -159,11 +159,41 @@ export async function action({
 
 export default function Homepage() {
   return (
-    <ClientOnly fallback={<HomepageContent />}>
+    <ClientOnly fallback={<HomepageShell />}>
       <ConversationProvider>
         <HomepageContent />
       </ConversationProvider>
     </ClientOnly>
+  );
+}
+
+/** SSR/loading fallback — hero without the chat (no ConversationProvider). */
+function HomepageShell() {
+  const rootData = useRouteLoaderData<RootLoader>('root');
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  return (
+    <>
+      <Suspense fallback={
+        <header>
+          <SiteHeader cartCount={0} onCartClick={() => setIsCartOpen(true)} />
+        </header>
+      }>
+        <Await resolve={rootData?.cart}>
+          {(cart) => (
+            <HeaderAndCart
+              cart={cart}
+              isCartOpen={isCartOpen}
+              onCartOpen={() => setIsCartOpen(true)}
+              onCartClose={() => setIsCartOpen(false)}
+            />
+          )}
+        </Await>
+      </Suspense>
+      <main className="min-h-screen bg-[var(--moa-bg)]">
+        <WelcomeHero />
+      </main>
+    </>
   );
 }
 
