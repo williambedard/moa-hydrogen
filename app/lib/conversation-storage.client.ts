@@ -33,6 +33,25 @@ export interface ConversationMessage {
   thinkingText?: string;
   /** Product ID the user was viewing when this message was sent (user messages only). */
   productId?: string;
+  /** Enriched products curated by the AI for this response (assistant messages only). */
+  products?: Array<{
+    id: string;
+    handle: string;
+    title: string;
+    description: string;
+    url: string;
+    price: string;
+    compareAtPrice?: string;
+    image_url?: string;
+    images: string[];
+    availableForSale: boolean;
+    variants?: Array<{
+      id: string;
+      title: string;
+      availableForSale: boolean;
+      price: string;
+    }>;
+  }>;
 }
 
 export interface ConversationResults {

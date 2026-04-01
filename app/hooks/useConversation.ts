@@ -20,6 +20,7 @@ interface AddAssistantMessageOptions {
   toolCalls?: ToolCallRecord[];
   thinkingText?: string;
   contentBlocks?: ContentBlock[];
+  products?: ConversationMessage['products'];
 }
 
 interface UseConversationReturn {
@@ -151,6 +152,7 @@ export function useConversation(): UseConversationReturn {
       timestamp: Date.now(),
       toolCalls: options?.toolCalls,
       thinkingText: options?.thinkingText,
+      products: options?.products,
     };
 
     setMessages((prev) => [...prev, message]);

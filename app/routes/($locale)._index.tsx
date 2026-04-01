@@ -653,6 +653,26 @@ function StreamingConversationPromptInner({
         toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
         thinkingText: state.thinkingText || undefined,
         contentBlocks: state.contentBlocks.length > 0 ? state.contentBlocks : undefined,
+        products: state.products && state.products.length > 0
+          ? state.products.map((p) => ({
+              id: p.id,
+              handle: p.handle,
+              title: p.title,
+              description: p.description,
+              url: p.url,
+              price: p.price,
+              compareAtPrice: p.compareAtPrice,
+              image_url: p.image_url,
+              images: p.images,
+              availableForSale: p.availableForSale,
+              variants: p.variants?.map((v) => ({
+                id: v.id,
+                title: v.title,
+                availableForSale: v.availableForSale,
+                price: v.price,
+              })),
+            }))
+          : undefined,
       });
 
       // Handle products

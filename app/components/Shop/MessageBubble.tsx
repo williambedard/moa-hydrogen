@@ -2,8 +2,24 @@ import {useState} from 'react';
 import {motion, AnimatePresence, useReducedMotion} from 'framer-motion';
 import Markdown from 'react-markdown';
 import type {ToolCallRecord, ContentBlock} from '~/lib/conversation-storage.client';
-import {ToolCallDisplay} from './ToolCallDisplay';
 import {ConciergeAvatar} from './ConciergeAvatar';
+import {ChatProductCard} from './ChatProductCard';
+import type {Product} from './ProductCard';
+
+/** Map raw tool names to shopper-friendly status labels. */
+const TOOL_LABELS: Record<string, string> = {
+  search_shop_catalog: 'Searching the catalog',
+  get_product_details: 'Looking up details',
+  update_cart: 'Updating your cart',
+  get_cart: 'Checking your cart',
+  _concierge_curate_content: 'Preparing recommendations',
+  _concierge_select_products: 'Selecting products',
+  _concierge_generate_image: 'Generating image',
+};
+
+function friendlyToolLabel(name: string): string {
+  return TOOL_LABELS[name] || 'Working on it';
+}
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -12,6 +28,7 @@ interface MessageBubbleProps {
   toolCalls?: ToolCallRecord[];
   thinkingText?: string;
   isStreaming?: boolean;
+  products?: Product[];
 }
 
 export function MessageBubble({
@@ -21,6 +38,7 @@ export function MessageBubble({
   toolCalls,
   thinkingText,
   isStreaming = false,
+  products,
 }: MessageBubbleProps) {
   const [showThinking, setShowThinking] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -33,6 +51,14 @@ export function MessageBubble({
   const hasAnyPendingTool = blocks.some(
     (b) => b.type === 'tool' && b.toolCall.status === 'pending',
   );
+
+  // Derive the single "latest pending tool" label to show
+  const pendingToolBlocks = blocks.filter(
+    (b): b is Extract<ContentBlock, {type: 'tool'}> => b.type === 'tool' && b.toolCall.status === 'pending',
+  );
+  const pendingToolLabel = pendingToolBlocks.length > 0
+    ? friendlyToolLabel(pendingToolBlocks[pendingToolBlocks.length - 1].toolCall.tool)
+    : null;
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -119,7 +145,7 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Render content blocks in stream order */}
+          {/* Render content blocks — text only, tools are invisible */}
           {blocks.map((block, i) => {
             if (block.type === 'text') {
               const hasPendingToolBefore = blocks
@@ -140,40 +166,27 @@ export function MessageBubble({
               );
             }
 
-            if (block.type === 'tool') {
-              const isFirst = i === 0;
-              return (
-                <div key={block.toolCall.id} className={`${!isFirst ? 'mt-2' : ''} space-y-2`}>
-                  <ToolCallDisplay
-                    id={block.toolCall.id}
-                    tool={block.toolCall.tool}
-                    params={block.toolCall.params}
-                    result={block.toolCall.result}
-                    status={block.toolCall.status}
-                    isStreaming={isStreaming}
-                  />
-                </div>
-              );
-            }
-
+            // Tool blocks are not rendered — the pending label below handles it
             return null;
           })}
 
-          {/* Activity indicator while tools are pending */}
-          {hasAnyPendingTool && (
-            <div className="mt-2 flex items-center gap-1.5">
-              {[0, 1, 2].map((i) => (
-                <motion.span
-                  key={i}
-                  className="block w-1 h-1 rounded-full bg-[var(--moa-accent)]"
-                  animate={shouldReduceMotion ? {} : {opacity: [0.3, 1, 0.3]}}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                    ease: 'easeInOut',
-                  }}
-                />
+          {/* Friendly status label while tools are running */}
+          {hasAnyPendingTool && pendingToolLabel && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-[var(--moa-text-tertiary)]">
+              <motion.span
+                className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--moa-accent)]"
+                animate={shouldReduceMotion ? {} : {opacity: [0.4, 1, 0.4]}}
+                transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
+              />
+              {pendingToolLabel}...
+            </div>
+          )}
+
+          {/* Inline product cards */}
+          {!isUser && products && products.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {products.slice(0, 4).map((product) => (
+                <ChatProductCard key={product.id} product={product} />
               ))}
             </div>
           )}

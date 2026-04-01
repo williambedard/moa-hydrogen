@@ -120,6 +120,7 @@ export function ConversationPanel({
                   contentBlocks={message.contentBlocks}
                   toolCalls={message.toolCalls}
                   thinkingText={message.thinkingText}
+                  products={message.products as import('./ProductCard').Product[] | undefined}
                 />
               ))}
 
