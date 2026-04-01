@@ -262,7 +262,7 @@ export function ConciergePrompt({
       ref={containerRef}
       key={isInHero ? 'hero' : 'widget'}
       className={isInHero
-        ? 'fixed z-[110] w-full max-w-[640px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'
+        ? 'relative z-[110] w-full'
         : 'fixed z-[110] w-[700px] max-w-[calc(100vw-3rem)] bottom-6 right-6'
       }
       initial={{opacity: 0}}
