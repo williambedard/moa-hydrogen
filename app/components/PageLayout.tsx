@@ -14,6 +14,7 @@ import {
   SearchFormPredictive,
 } from '~/components/SearchFormPredictive';
 import {SearchResultsPredictive} from '~/components/SearchResultsPredictive';
+import {FloatingChat} from '~/components/Shop/FloatingChat';
 
 interface PageLayoutProps {
   cart: Promise<CartApiQueryFragment | null>;
@@ -58,6 +59,7 @@ export function PageLayout({
         )}
       </header>
       <main>{children}</main>
+      <FloatingChat />
       <Footer
         footer={footer}
         header={header}
