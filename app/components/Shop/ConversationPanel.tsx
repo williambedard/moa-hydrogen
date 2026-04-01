@@ -19,13 +19,16 @@ interface ConversationPanelProps {
 function ThinkingIndicator({reduceMotion}: {reduceMotion: boolean | null}) {
   return (
     <div className="flex gap-3 flex-row">
+      {/* Avatar — matches MessageBubble assistant layout */}
       <div className="shrink-0">
         <div className="w-8 h-8 rounded-full overflow-hidden">
           <ConciergeAvatar size={32} />
         </div>
       </div>
-      <div className="flex-1">
-        <div className="inline-flex items-center gap-1 bg-[var(--moa-surface)] text-[var(--moa-text)] rounded-2xl rounded-tl-sm border border-[var(--moa-border)] px-4 py-3">
+
+      {/* Bubble — left-aligned, not flex-1 */}
+      <div>
+        <div className="inline-flex items-center gap-1.5 bg-[var(--moa-surface)] text-[var(--moa-text)] rounded-2xl rounded-tl-sm border border-[var(--moa-border)] px-4 py-3">
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
@@ -57,8 +60,11 @@ export function ConversationPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
-  const hasStreamingContent = !!(streamingText || (streamingContentBlocks && streamingContentBlocks.length > 0));
-  const showThinkingIndicator = isStreaming && !hasStreamingContent;
+  // Show thinking indicator until actual text starts streaming.
+  // Tool-only content blocks don't count — they're invisible to the user now.
+  const hasVisibleStreamingText = !!(streamingText && streamingText.length > 0);
+  const hasStreamingContent = hasVisibleStreamingText || !!(streamingContentBlocks && streamingContentBlocks.length > 0);
+  const showThinkingIndicator = isStreaming && !hasVisibleStreamingText;
 
   // Auto-scroll to bottom when messages change or streaming
   useEffect(() => {
