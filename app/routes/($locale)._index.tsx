@@ -469,7 +469,7 @@ function HomepageContent({
         className={`min-h-screen bg-[var(--moa-bg)] pb-24 ${selectedProduct ? 'overflow-hidden' : ''}`}
       >
         {/* Welcome Hero — branding + headline, chat input rendered as child */}
-        <WelcomeHero ref={heroSentinelRef} title="What's your mechanism?">
+        <WelcomeHero ref={heroSentinelRef}>
           {conversationEnabled ? (
             <StreamingConversationPrompt
               productContext={productContext}

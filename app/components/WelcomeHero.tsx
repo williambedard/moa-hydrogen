@@ -11,59 +11,80 @@ export const HERO_PROMPTS = [
 ];
 
 interface WelcomeHeroProps {
-  title?: string;
-  /** Render children (e.g. ConciergePrompt) in the slot where the input used to be */
   children?: React.ReactNode;
 }
 
 /**
- * Hero section — branding + headline + slot for the chat input.
+ * Hero section — branding, headline, subtitle, chat input slot, shop link.
  * The sentinel ref is forwarded so the parent can observe when the
  * hero scrolls out of view.
  */
 export const WelcomeHero = forwardRef<HTMLDivElement, WelcomeHeroProps>(
-  function WelcomeHero(
-    {title = "What's your mechanism?", children},
-    sentinelRef,
-  ) {
+  function WelcomeHero({children}, sentinelRef) {
     const prefersReducedMotion = useReducedMotion();
     const animateTo = {opacity: 1, y: 0};
+    const initial = prefersReducedMotion ? {} : {opacity: 0, y: 16};
 
     return (
-      <section className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--moa-bg)] moa-dots px-6">
-        {/* Content */}
-        <div className="relative z-10 w-full max-w-[640px] text-center">
+      <section className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--moa-bg)] px-6">
+        <div className="relative z-10 w-full max-w-[680px] text-center">
           {/* Brand mark */}
           <motion.div
-            className="mb-8"
-            initial={prefersReducedMotion ? {} : {opacity: 0, y: 16}}
+            className="mb-10"
+            initial={initial}
             animate={animateTo}
             transition={{duration: 0.6, delay: 0.1}}
           >
-            <span className="font-[var(--font-heading)] text-[1.8rem] font-normal tracking-[0.25em] text-[var(--moa-text)] uppercase">
-              M &middot; O &middot; A
+            <span className="font-[var(--font-body)] text-[0.8rem] font-medium tracking-[0.35em] text-[var(--moa-text-secondary)] uppercase">
+              Mechanism of Action
             </span>
           </motion.div>
 
           {/* Headline */}
           <motion.h1
-            className="font-[var(--font-heading)] text-[clamp(2.5rem,5vw,4rem)] font-normal text-[var(--moa-text)] mb-10 leading-[1.1] italic"
-            initial={prefersReducedMotion ? {} : {opacity: 0, y: 16}}
+            className="font-[var(--font-heading)] text-[clamp(2.5rem,5vw,4rem)] font-normal text-[var(--moa-text)] mb-6 leading-[1.15]"
+            initial={initial}
             animate={animateTo}
-            transition={{duration: 0.6, delay: 0.25}}
+            transition={{duration: 0.6, delay: 0.2}}
           >
-            {title}
+            The first supplement brand built for the age of agents.
           </motion.h1>
 
-          {/* Sentinel — observed by IntersectionObserver to detect scroll.
-              ConciergePrompt renders here in relative position (hero mode). */}
+          {/* Subtitle */}
+          <motion.p
+            className="font-[var(--font-body)] text-base text-[var(--moa-text-secondary)] mb-10 max-w-[520px] mx-auto leading-relaxed"
+            initial={initial}
+            animate={animateTo}
+            transition={{duration: 0.6, delay: 0.3}}
+          >
+            Tell us your goal. We&apos;ll build your protocol, answer every
+            question, and handle everything in a single conversation &mdash;
+            no forms, no funnels.
+          </motion.p>
+
+          {/* Sentinel + chat input slot */}
           <motion.div
             ref={sentinelRef}
-            initial={prefersReducedMotion ? {} : {opacity: 0, y: 16}}
+            initial={initial}
             animate={animateTo}
             transition={{duration: 0.6, delay: 0.4}}
           >
             {children}
+          </motion.div>
+
+          {/* Shop the traditional way */}
+          <motion.div
+            className="mt-6"
+            initial={initial}
+            animate={animateTo}
+            transition={{duration: 0.6, delay: 0.55}}
+          >
+            <a
+              href="/collections/all"
+              className="text-sm font-[var(--font-body)] text-[var(--moa-text-tertiary)] underline underline-offset-4 decoration-[var(--moa-border)] hover:text-[var(--moa-text-secondary)] hover:decoration-[var(--moa-text-tertiary)] transition-colors"
+            >
+              Shop the traditional way
+            </a>
           </motion.div>
         </div>
 

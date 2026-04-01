@@ -1,7 +1,6 @@
 /**
  * MOA — Mechanism of Action
- * Design system: "Clinical Intelligence"
- * Dark, green-tinted, lab-environment aesthetic
+ * Design system: neutral dark palette with accent green
  */
 
 /* Google Fonts — must precede all other @import per CSS spec */
@@ -11,17 +10,17 @@
 
 /* Design tokens */
 :root {
-  --moa-bg: #080C0A;
-  --moa-surface: #0F1A14;
-  --moa-surface-elevated: #162118;
-  --moa-border: #1E3228;
-  --moa-text: #E2EBE4;
-  --moa-text-secondary: #7A9484;
-  --moa-text-tertiary: #4A6355;
+  --moa-bg: #0A0A0A;
+  --moa-surface: #141414;
+  --moa-surface-elevated: #1A1A1A;
+  --moa-border: #252525;
+  --moa-text: #E8E8E8;
+  --moa-text-secondary: #8A8A8A;
+  --moa-text-tertiary: #5A5A5A;
   --moa-accent: #00D4AA;
   --moa-accent-dim: #00A88A;
   --moa-accent-glow: rgba(0, 212, 170, 0.12);
-  --moa-user-bubble: #1A2E24;
+  --moa-user-bubble: #1A1A1A;
   --moa-error: #FF6B6B;
 
   --font-heading: 'Instrument Serif', Georgia, serif;

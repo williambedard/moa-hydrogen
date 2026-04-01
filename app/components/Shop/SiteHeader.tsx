@@ -32,9 +32,11 @@ export function SiteHeader({cartCount = 0, onCartClick}: SiteHeaderProps) {
 
       <Link
         to="/"
-        className="font-[var(--font-heading)] text-lg font-normal tracking-[0.25em] no-underline uppercase text-[var(--moa-text)] hover:text-[var(--moa-accent)] transition-colors duration-300"
+        className={`font-[var(--font-body)] text-xs font-medium tracking-[0.3em] no-underline uppercase text-[var(--moa-text)] hover:text-[var(--moa-accent)] transition-all duration-300 ${
+          isScrolled ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
       >
-        M &middot; O &middot; A
+        MOA
       </Link>
 
       <div className="flex-1 flex items-center justify-end">
