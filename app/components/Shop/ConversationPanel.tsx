@@ -14,6 +14,8 @@ interface ConversationPanelProps {
   streamingContentBlocks?: ContentBlock[];
   streamingThinkingText?: string;
   isStreaming?: boolean;
+  /** Customer account login required — shows login indicator in chat */
+  authRequired?: boolean;
 }
 
 function ThinkingIndicator({reduceMotion}: {reduceMotion: boolean | null}) {
@@ -48,6 +50,26 @@ function ThinkingIndicator({reduceMotion}: {reduceMotion: boolean | null}) {
   );
 }
 
+function AuthRequiredIndicator() {
+  return (
+    <div className="flex gap-3 flex-row">
+      <div className="shrink-0">
+        <div className="w-8 h-8 rounded-full overflow-hidden">
+          <ConciergeAvatar size={32} />
+        </div>
+      </div>
+      <div>
+        <div className="inline-flex items-center gap-2 bg-[var(--moa-surface)] text-[var(--moa-text-secondary)] rounded-2xl rounded-tl-sm border border-[var(--moa-accent)]/30 px-4 py-3 text-sm">
+          <svg className="w-4 h-4 text-[var(--moa-accent)] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="31.4" strokeDashoffset="10" strokeLinecap="round" />
+          </svg>
+          Waiting for login...
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ConversationPanel({
   messages,
   isOpen,
@@ -56,6 +78,7 @@ export function ConversationPanel({
   streamingContentBlocks,
   streamingThinkingText,
   isStreaming,
+  authRequired,
 }: ConversationPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
@@ -132,7 +155,7 @@ export function ConversationPanel({
 
               {/* Thinking indicator */}
               <AnimatePresence>
-                {showThinkingIndicator && (
+                {showThinkingIndicator && !authRequired && (
                   <motion.div
                     initial={{opacity: 0, y: 4}}
                     animate={{opacity: 1, y: 0}}
@@ -140,6 +163,20 @@ export function ConversationPanel({
                     transition={{duration: 0.2}}
                   >
                     <ThinkingIndicator reduceMotion={shouldReduceMotion} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Auth required indicator */}
+              <AnimatePresence>
+                {authRequired && (
+                  <motion.div
+                    initial={{opacity: 0, y: 4}}
+                    animate={{opacity: 1, y: 0}}
+                    exit={{opacity: 0, y: -4}}
+                    transition={{duration: 0.2}}
+                  >
+                    <AuthRequiredIndicator />
                   </motion.div>
                 )}
               </AnimatePresence>

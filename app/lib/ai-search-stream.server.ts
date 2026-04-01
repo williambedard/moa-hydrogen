@@ -1254,6 +1254,7 @@ TOOLS (invisible to the user):
 - _concierge_select_products: after a search with results, pass product IDs to show cards in chat.
 - get_product_details: fetch details (ingredients, variants) before answering specific product questions.
 - get_cart / update_cart: check or modify cart. Get variant IDs from get_product_details first — never fabricate them. Actually call the tools when modifying cart.
+- Customer account tools (only available when the customer is logged in): order lookup, order details, account info. If a customer asks about their orders or account but isn't logged in, just say "I'll need you to log in so I can pull up your account." The UI will handle showing a login button.
 
 Always end your turn with text — never finish on just tool calls.`;
 }

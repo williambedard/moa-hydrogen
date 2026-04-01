@@ -111,8 +111,15 @@ export async function action({
     }
   }
 
-  const {env, storefront, cart} = context;
+  const {env, storefront, cart, session} = context;
   const storeDomain = `https://${env.PUBLIC_STORE_DOMAIN}`;
+
+  // Check for customer access token (from PKCE OAuth login)
+  const customerAccessToken = session.get('customer_access_token') as string | undefined;
+  const tokenExpiresAt = session.get('customer_token_expires_at') as number | undefined;
+  const validCustomerToken = (customerAccessToken && tokenExpiresAt && Date.now() < tokenExpiresAt)
+    ? customerAccessToken
+    : undefined;
 
   // Get cart data for context
   const cartData = await cart.get();
@@ -134,6 +141,7 @@ export async function action({
       cartContext,
       productContext,
       enableExtendedThinking,
+      customerAccessToken: validCustomerToken,
     });
 
     const stream = createSSEStream(generator);
@@ -460,6 +468,7 @@ function StreamingConversationPromptInner() {
       onStopSpeaking={voiceMode.stopSpeaking}
       onStartListening={voiceMode.startListening}
       isInHero={true}
+      authRequired={state.authRequired}
     />
   );
 }

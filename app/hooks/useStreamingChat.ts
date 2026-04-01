@@ -2,7 +2,7 @@
  * Client-side hook for consuming Server-Sent Events from the AI streaming endpoint.
  */
 
-import {useState, useCallback, useRef} from 'react';
+import {useState, useCallback, useRef, useEffect} from 'react';
 import type {ContextUpdate} from '~/lib/shopping-context';
 import type {IntentResult} from '~/lib/intent-types';
 
@@ -120,16 +120,38 @@ const initialState: StreamingState = {
 export function useStreamingChat(): UseStreamingChatReturn {
   const [state, setState] = useState<StreamingState>(initialState);
   const abortControllerRef = useRef<AbortController | null>(null);
+  /** Store the last submitted FormData so we can retry after auth. */
+  const lastFormDataRef = useRef<FormData | null>(null);
+  const startStreamRef = useRef<((formData: FormData) => Promise<void>) | null>(null);
 
   const reset = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    lastFormDataRef.current = null;
     setState(initialState);
   }, []);
 
+  // Listen for auth completion from the login popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'moa_auth_complete') {
+        console.log('[useStreamingChat] Auth completed, retrying last query');
+        setState((prev) => ({...prev, authRequired: false, loginUrl: null}));
+        // Re-submit the last query now that the customer is authenticated
+        const lastFormData = lastFormDataRef.current;
+        if (lastFormData && startStreamRef.current) {
+          startStreamRef.current(lastFormData);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const startStream = useCallback(async (formData: FormData) => {
+    lastFormDataRef.current = formData;
     // Abort any existing stream
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -220,6 +242,9 @@ export function useStreamingChat(): UseStreamingChatReturn {
       abortControllerRef.current = null;
     }
   }, []);
+
+  // Keep startStream ref updated for the postMessage handler
+  startStreamRef.current = startStream;
 
   return {state, startStream, reset};
 }

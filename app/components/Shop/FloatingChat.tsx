@@ -134,6 +134,7 @@ function FloatingChatInner() {
       isStreaming={state.isStreaming}
       suggestedPrompts={null}
       isInHero={false}
+      authRequired={state.authRequired}
     />
   );
 }

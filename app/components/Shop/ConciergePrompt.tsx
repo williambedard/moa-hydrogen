@@ -53,6 +53,8 @@ interface ConciergePromptProps {
   onStartListening?: () => void;
   /** When true, renders centered inline (hero mode) instead of fixed bottom-right */
   isInHero?: boolean;
+  /** Customer account login required — shows login indicator */
+  authRequired?: boolean;
 }
 
 export function ConciergePrompt({
@@ -76,6 +78,7 @@ export function ConciergePrompt({
   onStopSpeaking,
   onStartListening,
   isInHero = false,
+  authRequired = false,
 }: ConciergePromptProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -315,6 +318,7 @@ export function ConciergePrompt({
                   streamingContentBlocks={streamingContentBlocks}
                   streamingThinkingText={streamingThinkingText}
                   isStreaming={isStreaming}
+                  authRequired={authRequired}
                 />
               )}
             </AnimatePresence>
