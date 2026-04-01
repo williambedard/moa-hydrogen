@@ -1,11 +1,11 @@
 import {Await, Link, useLocation} from 'react-router';
-import {Suspense, useId} from 'react';
+import {Suspense, useId, useEffect} from 'react';
 import type {
   CartApiQueryFragment,
   FooterQuery,
   HeaderQuery,
 } from 'storefrontapi.generated';
-import {Aside} from '~/components/Aside';
+import {Aside, useAside} from '~/components/Aside';
 import {Footer} from '~/components/Footer';
 import {Header, HeaderMenu} from '~/components/Header';
 import {CartMain} from '~/components/CartMain';
@@ -46,6 +46,7 @@ export function PageLayout({
   return (
     <Aside.Provider>
       <CartAside cart={cart} />
+      <CartEventListener />
       <SearchAside />
       <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
       <header>
@@ -67,6 +68,17 @@ export function PageLayout({
       />
     </Aside.Provider>
   );
+}
+
+/** Opens the cart aside when a ChatProductCard dispatches cart:item-added. */
+function CartEventListener() {
+  const {open} = useAside();
+  useEffect(() => {
+    const handler = () => open('cart');
+    window.addEventListener('cart:item-added', handler);
+    return () => window.removeEventListener('cart:item-added', handler);
+  }, [open]);
+  return null;
 }
 
 function CartAside({cart}: {cart: PageLayoutProps['cart']}) {

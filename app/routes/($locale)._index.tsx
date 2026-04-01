@@ -203,6 +203,13 @@ function HomepageContent() {
   // Cart state
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  // Open cart drawer when a ChatProductCard adds an item
+  useEffect(() => {
+    const handleCartAdd = () => setIsCartOpen(true);
+    window.addEventListener('cart:item-added', handleCartAdd);
+    return () => window.removeEventListener('cart:item-added', handleCartAdd);
+  }, []);
+
   return (
     <>
       <Suspense fallback={
