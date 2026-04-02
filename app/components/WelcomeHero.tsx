@@ -2,12 +2,12 @@ import {forwardRef} from 'react';
 import {motion, useReducedMotion} from 'framer-motion';
 
 export const HERO_PROMPTS = [
-  'Build my stack',
-  'How is your omega-3 different?',
-  'What makes MOA unique?',
-  'Tell me about creatine stability',
-  'What clinical evidence backs this?',
-  'Help me optimize recovery',
+  'Build me a recovery stack',
+  'Help me sleep better',
+  'What helps with focus and energy?',
+  'I need help with gut health',
+  'What makes MOA different?',
+  'What should I start with?',
 ];
 
 interface WelcomeHeroProps {

@@ -9,23 +9,23 @@ import type {ProductContext} from '~/lib/product-context';
 import {HERO_PROMPTS} from '~/components/WelcomeHero';
 
 const PLACEHOLDER_SUGGESTIONS = [
-  'Tell me about creatine stability...',
-  'What sets your omega-3 apart?',
-  'Build me a supplement stack...',
-  'How does MOA source ingredients?',
-  'What clinical studies back this?',
-  'Help me optimize recovery...',
+  'What should I take for recovery?',
+  'Help me pick a protocol...',
+  'What does the Focus Stack do?',
+  'I want better sleep...',
+  'Build me a supplement routine...',
+  'What ingredients are in Recovery Protocol?',
 ];
 
 const PRODUCT_PLACEHOLDER_SUGGESTIONS = [
   'What clinical data supports this?',
   'How should I dose this?',
-  'What makes this formulation unique?',
-  'Can I combine this with other supplements?',
+  'Can I stack this with other protocols?',
   'What results should I expect?',
-  'How does this compare to competitors?',
+  'Why these specific ingredients?',
+  'How long until I notice a difference?',
   'Is this third-party tested?',
-  'What are the active ingredients?',
+  'What makes this better than competitors?',
 ];
 
 interface ConciergePromptProps {
