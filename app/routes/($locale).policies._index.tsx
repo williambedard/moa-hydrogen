@@ -25,14 +25,25 @@ export default function Policies() {
   const {policies} = useLoaderData<typeof loader>();
 
   return (
-    <div className="policies">
-      <h1>Policies</h1>
-      <div>
-        {policies.map((policy) => (
-          <fieldset key={policy.id}>
-            <Link to={`/policies/${policy.handle}`}>{policy.title}</Link>
-          </fieldset>
-        ))}
+    <div className="min-h-screen bg-[var(--moa-bg)] pt-8 pb-16">
+      <div className="max-w-3xl mx-auto px-6">
+        <p className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] text-[var(--moa-text-tertiary)] uppercase mb-3">
+          Mechanism of Action
+        </p>
+        <h1 className="font-[var(--font-heading)] text-[clamp(2rem,4vw,3rem)] text-[var(--moa-text)] leading-tight mb-8">
+          Policies
+        </h1>
+        <div className="space-y-3">
+          {policies.map((policy) => (
+            <Link
+              key={policy.id}
+              to={`/policies/${policy.handle}`}
+              className="block p-4 rounded-xl border border-[var(--moa-border)] bg-[var(--moa-surface)] font-[var(--font-body)] text-sm text-[var(--moa-text)] hover:border-[var(--moa-accent)] hover:text-[var(--moa-accent)] transition-colors"
+            >
+              {policy.title} &rarr;
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

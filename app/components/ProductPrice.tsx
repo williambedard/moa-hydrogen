@@ -9,11 +9,11 @@ export function ProductPrice({
   compareAtPrice?: MoneyV2 | null;
 }) {
   return (
-    <div className="product-price">
+    <div className="font-[var(--font-mono)] text-lg text-[var(--moa-accent)]">
       {compareAtPrice ? (
-        <div className="product-price-on-sale">
+        <div className="flex items-center gap-3">
           {price ? <Money data={price} /> : null}
-          <s>
+          <s className="text-[var(--moa-text-tertiary)] text-base">
             <Money data={compareAtPrice} />
           </s>
         </div>

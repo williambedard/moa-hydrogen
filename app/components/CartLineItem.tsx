@@ -26,19 +26,22 @@ export function CartLineItem({
   const {close} = useAside();
 
   return (
-    <li key={id} className="cart-line">
+    <li key={id} className="flex gap-4 py-4 border-b border-[var(--moa-border)] last:border-b-0">
       {image && (
-        <Image
-          alt={title}
-          aspectRatio="1/1"
-          data={image}
-          height={100}
-          loading="lazy"
-          width={100}
-        />
+        <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-[var(--moa-surface-elevated)]">
+          <Image
+            alt={title}
+            aspectRatio="1/1"
+            data={image}
+            height={80}
+            loading="lazy"
+            width={80}
+            className="w-full h-full object-cover"
+          />
+        </div>
       )}
 
-      <div>
+      <div className="flex-1 min-w-0">
         <Link
           prefetch="intent"
           to={lineItemUrl}
@@ -47,22 +50,21 @@ export function CartLineItem({
               close();
             }
           }}
+          className="font-[var(--font-body)] text-sm font-medium text-[var(--moa-text)] hover:text-[var(--moa-accent)] transition-colors"
         >
-          <p>
-            <strong>{product.title}</strong>
-          </p>
+          {product.title}
         </Link>
-        <ProductPrice price={line?.cost?.totalAmount} />
-        <ul>
+        <ul className="mt-1 space-y-0.5">
           {selectedOptions.map((option) => (
-            <li key={option.name}>
-              <small>
-                {option.name}: {option.value}
-              </small>
+            <li key={option.name} className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)]">
+              {option.name}: {option.value}
             </li>
           ))}
         </ul>
-        <CartLineQuantity line={line} />
+        <div className="flex items-center justify-between mt-2">
+          <CartLineQuantity line={line} />
+          <ProductPrice price={line?.cost?.totalAmount} />
+        </div>
       </div>
     </li>
   );
@@ -79,31 +81,36 @@ function CartLineQuantity({line}: {line: CartLine}) {
   const prevQuantity = Number(Math.max(0, quantity - 1).toFixed(0));
   const nextQuantity = Number((quantity + 1).toFixed(0));
 
+  const qtyBtnClass =
+    'w-7 h-7 flex items-center justify-center rounded border border-[var(--moa-border)] text-[var(--moa-text-secondary)] text-xs hover:border-[var(--moa-text-tertiary)] hover:text-[var(--moa-text)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
+
   return (
-    <div className="cart-line-quantity">
-      <small>Quantity: {quantity} &nbsp;&nbsp;</small>
+    <div className="flex items-center gap-2">
       <CartLineUpdateButton lines={[{id: lineId, quantity: prevQuantity}]}>
         <button
           aria-label="Decrease quantity"
           disabled={quantity <= 1 || !!isOptimistic}
           name="decrease-quantity"
           value={prevQuantity}
+          className={qtyBtnClass}
         >
-          <span>&#8722; </span>
+          &#8722;
         </button>
       </CartLineUpdateButton>
-      &nbsp;
+      <span className="font-[var(--font-mono)] text-xs text-[var(--moa-text)] w-6 text-center">
+        {quantity}
+      </span>
       <CartLineUpdateButton lines={[{id: lineId, quantity: nextQuantity}]}>
         <button
           aria-label="Increase quantity"
           name="increase-quantity"
           value={nextQuantity}
           disabled={!!isOptimistic}
+          className={qtyBtnClass}
         >
-          <span>&#43;</span>
+          &#43;
         </button>
       </CartLineUpdateButton>
-      &nbsp;
       <CartLineRemoveButton lineIds={[lineId]} disabled={!!isOptimistic} />
     </div>
   );
@@ -128,7 +135,11 @@ function CartLineRemoveButton({
       action={CartForm.ACTIONS.LinesRemove}
       inputs={{lineIds}}
     >
-      <button disabled={disabled} type="submit">
+      <button
+        disabled={disabled}
+        type="submit"
+        className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)] hover:text-[var(--moa-error)] transition-colors disabled:opacity-30"
+      >
         Remove
       </button>
     </CartForm>

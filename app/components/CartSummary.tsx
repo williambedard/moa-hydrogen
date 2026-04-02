@@ -11,15 +11,18 @@ type CartSummaryProps = {
 };
 
 export function CartSummary({cart, layout}: CartSummaryProps) {
-  const className =
-    layout === 'page' ? 'cart-summary-page' : 'cart-summary-aside';
-
   return (
-    <div aria-labelledby="cart-summary" className={className}>
-      <h4>Totals</h4>
-      <dl className="cart-subtotal">
-        <dt>Subtotal</dt>
-        <dd>
+    <div
+      aria-labelledby="cart-summary"
+      className={`pt-4 border-t border-[var(--moa-border)] ${
+        layout === 'page' ? 'max-w-md' : ''
+      }`}
+    >
+      <dl className="flex items-center justify-between mb-4">
+        <dt className="font-[var(--font-body)] text-sm text-[var(--moa-text-secondary)]">
+          Subtotal
+        </dt>
+        <dd className="font-[var(--font-mono)] text-base text-[var(--moa-accent)]">
           {cart?.cost?.subtotalAmount?.amount ? (
             <Money data={cart?.cost?.subtotalAmount} />
           ) : (
@@ -38,11 +41,14 @@ function CartCheckoutActions({checkoutUrl}: {checkoutUrl?: string}) {
   if (!checkoutUrl) return null;
 
   return (
-    <div>
-      <a href={checkoutUrl} target="_self">
-        <p>Continue to Checkout &rarr;</p>
+    <div className="mt-4">
+      <a
+        href={checkoutUrl}
+        target="_self"
+        className="block w-full py-3 px-6 rounded-lg font-[var(--font-body)] text-sm font-medium tracking-wide uppercase text-center transition-all duration-200 bg-[var(--moa-accent)] text-[var(--moa-bg)] hover:bg-[var(--moa-accent-dim)]"
+      >
+        Continue to Checkout &rarr;
       </a>
-      <br />
     </div>
   );
 }
@@ -58,27 +64,34 @@ function CartDiscounts({
       ?.map(({code}) => code) || [];
 
   return (
-    <div>
-      {/* Have existing discount, display it with a remove option */}
+    <div className="space-y-2">
       <dl hidden={!codes.length}>
-        <div>
-          <dt>Discount(s)</dt>
+        <div className="flex items-center gap-2">
+          <dt className="font-[var(--font-body)] text-xs text-[var(--moa-text-secondary)]">Discount:</dt>
           <UpdateDiscountForm>
-            <div className="cart-discount">
-              <code>{codes?.join(', ')}</code>
-              &nbsp;
-              <button>Remove</button>
+            <div className="flex items-center gap-2">
+              <code className="font-[var(--font-mono)] text-xs text-[var(--moa-accent)]">{codes?.join(', ')}</code>
+              <button className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)] hover:text-[var(--moa-error)] transition-colors">
+                Remove
+              </button>
             </div>
           </UpdateDiscountForm>
         </div>
       </dl>
-
-      {/* Show an input to apply a discount */}
       <UpdateDiscountForm discountCodes={codes}>
-        <div>
-          <input type="text" name="discountCode" placeholder="Discount code" />
-          &nbsp;
-          <button type="submit">Apply</button>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name="discountCode"
+            placeholder="Discount code"
+            className="flex-1 px-3 py-2 rounded-lg bg-[var(--moa-surface-elevated)] border border-[var(--moa-border)] font-[var(--font-body)] text-xs text-[var(--moa-text)] placeholder:text-[var(--moa-text-tertiary)] focus:outline-none focus:border-[var(--moa-accent)]"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-lg border border-[var(--moa-border)] font-[var(--font-body)] text-xs text-[var(--moa-text-secondary)] hover:border-[var(--moa-accent)] hover:text-[var(--moa-accent)] transition-colors"
+          >
+            Apply
+          </button>
         </div>
       </UpdateDiscountForm>
     </div>
@@ -129,40 +142,43 @@ function CartGiftCard({
   }
 
   return (
-    <div>
-      {/* Display applied gift cards with individual remove buttons */}
+    <div className="space-y-2">
       {giftCardCodes && giftCardCodes.length > 0 && (
-        <dl>
-          <dt>Applied Gift Card(s)</dt>
+        <dl className="space-y-1">
+          <dt className="font-[var(--font-body)] text-xs text-[var(--moa-text-secondary)]">Gift Card(s)</dt>
           {giftCardCodes.map((giftCard) => (
             <RemoveGiftCardForm key={giftCard.id} giftCardId={giftCard.id}>
-              <div className="cart-discount">
-                <code>***{giftCard.lastCharacters}</code>
-                &nbsp;
-                <Money data={giftCard.amountUsed} />
-                &nbsp;
-                <button type="submit">Remove</button>
+              <div className="flex items-center gap-2">
+                <code className="font-[var(--font-mono)] text-xs text-[var(--moa-accent)]">***{giftCard.lastCharacters}</code>
+                <span className="font-[var(--font-mono)] text-xs text-[var(--moa-text-secondary)]">
+                  <Money data={giftCard.amountUsed} />
+                </span>
+                <button type="submit" className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)] hover:text-[var(--moa-error)] transition-colors">
+                  Remove
+                </button>
               </div>
             </RemoveGiftCardForm>
           ))}
         </dl>
       )}
-
-      {/* Show an input to apply a gift card */}
       <UpdateGiftCardForm
         giftCardCodes={appliedGiftCardCodes.current}
         saveAppliedCode={saveAppliedCode}
         fetcherKey="gift-card-add"
       >
-        <div>
+        <div className="flex gap-2">
           <input
             type="text"
             name="giftCardCode"
             placeholder="Gift card code"
             ref={giftCardCodeInput}
+            className="flex-1 px-3 py-2 rounded-lg bg-[var(--moa-surface-elevated)] border border-[var(--moa-border)] font-[var(--font-body)] text-xs text-[var(--moa-text)] placeholder:text-[var(--moa-text-tertiary)] focus:outline-none focus:border-[var(--moa-accent)]"
           />
-          &nbsp;
-          <button type="submit" disabled={giftCardAddFetcher.state !== 'idle'}>
+          <button
+            type="submit"
+            disabled={giftCardAddFetcher.state !== 'idle'}
+            className="px-4 py-2 rounded-lg border border-[var(--moa-border)] font-[var(--font-body)] text-xs text-[var(--moa-text-secondary)] hover:border-[var(--moa-accent)] hover:text-[var(--moa-accent)] transition-colors disabled:opacity-40"
+          >
             Apply
           </button>
         </div>

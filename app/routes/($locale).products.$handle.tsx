@@ -15,7 +15,7 @@ import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 
 export const meta: Route.MetaFunction = ({data}) => {
   return [
-    {title: `Hydrogen | ${data?.product.title ?? ''}`},
+    {title: `MOA | ${data?.product.title ?? ''}`},
     {
       rel: 'canonical',
       href: `/products/${data?.product.handle}`,
@@ -79,47 +79,81 @@ function loadDeferredData({context, params}: Route.LoaderArgs) {
 export default function Product() {
   const {product} = useLoaderData<typeof loader>();
 
-  // Optimistically selects a variant with given available variant information
   const selectedVariant = useOptimisticVariant(
     product.selectedOrFirstAvailableVariant,
     getAdjacentAndFirstAvailableVariants(product),
   );
 
-  // Sets the search param to the selected variant without navigation
-  // only when no search params are set in the url
   useSelectedOptionInUrlParam(selectedVariant.selectedOptions);
 
-  // Get the product options array
   const productOptions = getProductOptions({
     ...product,
     selectedOrFirstAvailableVariant: selectedVariant,
   });
 
   const {title, descriptionHtml} = product;
+  const ingredients = product.metafields?.[0]?.value || null;
+
+  // descriptionHtml is trusted content from Shopify admin (merchant-authored)
+  const descriptionMarkup = descriptionHtml
+    ? {__html: descriptionHtml}
+    : undefined;
 
   return (
-    <div className="product">
-      <ProductImage image={selectedVariant?.image} />
-      <div className="product-main">
-        <h1>{title}</h1>
-        <ProductPrice
-          price={selectedVariant?.price}
-          compareAtPrice={selectedVariant?.compareAtPrice}
-        />
-        <br />
-        <ProductForm
-          productOptions={productOptions}
-          selectedVariant={selectedVariant}
-        />
-        <br />
-        <br />
-        <p>
-          <strong>Description</strong>
-        </p>
-        <br />
-        <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
-        <br />
+    <div className="min-h-screen bg-[var(--moa-bg)] pt-8 pb-16">
+      <div className="max-w-5xl mx-auto px-6">
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
+          {/* Left: Product image */}
+          <ProductImage image={selectedVariant?.image} />
+
+          {/* Right: Product details */}
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] text-[var(--moa-text-tertiary)] uppercase mb-3">
+                Mechanism of Action
+              </p>
+              <h1 className="font-[var(--font-heading)] text-[clamp(2rem,4vw,3rem)] text-[var(--moa-text)] leading-tight mb-3">
+                {title}
+              </h1>
+              <ProductPrice
+                price={selectedVariant?.price}
+                compareAtPrice={selectedVariant?.compareAtPrice}
+              />
+            </div>
+
+            <ProductForm
+              productOptions={productOptions}
+              selectedVariant={selectedVariant}
+            />
+
+            {ingredients && (
+              <div className="pt-4 border-t border-[var(--moa-border)]">
+                <p className="font-[var(--font-body)] text-[0.7rem] font-medium uppercase tracking-[0.15em] text-[var(--moa-text-tertiary)] mb-2">
+                  Ingredients
+                </p>
+                <p className="font-[var(--font-mono)] text-xs text-[var(--moa-text-tertiary)] leading-relaxed">
+                  {ingredients}
+                </p>
+              </div>
+            )}
+
+            {descriptionMarkup && (
+              <div className="pt-4 border-t border-[var(--moa-border)]">
+                <p className="font-[var(--font-body)] text-[0.7rem] font-medium uppercase tracking-[0.15em] text-[var(--moa-text-tertiary)] mb-3">
+                  Description
+                </p>
+                {/* eslint-disable-next-line react/no-danger -- Shopify admin content is trusted */}
+                <div
+                  className="prose-page font-[var(--font-body)] text-sm text-[var(--moa-text-secondary)] leading-relaxed"
+                  dangerouslySetInnerHTML={descriptionMarkup}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
       <Analytics.ProductView
         data={{
           products: [
@@ -208,6 +242,10 @@ const PRODUCT_FRAGMENT = `#graphql
     }
     adjacentVariants (selectedOptions: $selectedOptions) {
       ...ProductVariant
+    }
+    metafields(identifiers: [{namespace: "custom", key: "ingredients"}]) {
+      key
+      value
     }
     seo {
       description
