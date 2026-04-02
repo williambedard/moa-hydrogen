@@ -17,14 +17,40 @@ export function Footer({
     <Suspense>
       <Await resolve={footerPromise}>
         {(footer) => (
-          <footer className="footer">
-            {footer?.menu && header.shop.primaryDomain?.url && (
-              <FooterMenu
-                menu={footer.menu}
-                primaryDomainUrl={header.shop.primaryDomain.url}
-                publicStoreDomain={publicStoreDomain}
-              />
-            )}
+          <footer className="bg-[var(--moa-surface)] border-t border-[var(--moa-border)]">
+            <div className="max-w-5xl mx-auto px-6 py-12">
+              {/* Top section: brand + policy links */}
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 mb-10">
+                {/* Brand */}
+                <div>
+                  <NavLink
+                    to="/"
+                    className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] uppercase text-[var(--moa-text)] hover:text-[var(--moa-accent)] transition-colors duration-300 no-underline"
+                  >
+                    MOA
+                  </NavLink>
+                  <p className="mt-2 font-[var(--font-body)] text-sm text-[var(--moa-text-tertiary)] max-w-xs leading-relaxed">
+                    Clinical-grade supplements, backed by evidence.
+                  </p>
+                </div>
+
+                {/* Policy links */}
+                {footer?.menu && header.shop.primaryDomain?.url && (
+                  <FooterMenu
+                    menu={footer.menu}
+                    primaryDomainUrl={header.shop.primaryDomain.url}
+                    publicStoreDomain={publicStoreDomain}
+                  />
+                )}
+              </div>
+
+              {/* Bottom: copyright */}
+              <div className="pt-6 border-t border-[var(--moa-border)]">
+                <p className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)]">
+                  &copy; {new Date().getFullYear()} Mechanism of Action. All rights reserved.
+                </p>
+              </div>
+            </div>
           </footer>
         )}
       </Await>
@@ -41,11 +67,12 @@ function FooterMenu({
   primaryDomainUrl: FooterProps['header']['shop']['primaryDomain']['url'];
   publicStoreDomain: string;
 }) {
+  const items = (menu || FALLBACK_FOOTER_MENU).items;
+
   return (
-    <nav className="footer-menu" role="navigation">
-      {(menu || FALLBACK_FOOTER_MENU).items.map((item) => {
+    <nav className="flex flex-wrap gap-x-6 gap-y-2" role="navigation">
+      {items.map((item) => {
         if (!item.url) return null;
-        // if the url is internal, we strip the domain
         const url =
           item.url.includes('myshopify.com') ||
           item.url.includes(publicStoreDomain) ||
@@ -54,7 +81,13 @@ function FooterMenu({
             : item.url;
         const isExternal = !url.startsWith('/');
         return isExternal ? (
-          <a href={url} key={item.id} rel="noopener noreferrer" target="_blank">
+          <a
+            href={url}
+            key={item.id}
+            rel="noopener noreferrer"
+            target="_blank"
+            className="font-[var(--font-body)] text-sm text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors duration-200 no-underline"
+          >
             {item.title}
           </a>
         ) : (
@@ -62,8 +95,8 @@ function FooterMenu({
             end
             key={item.id}
             prefetch="intent"
-            style={activeLinkStyle}
             to={url}
+            className="font-[var(--font-body)] text-sm text-[var(--moa-text-tertiary)] hover:text-[var(--moa-text-secondary)] transition-colors duration-200 no-underline"
           >
             {item.title}
           </NavLink>
@@ -74,11 +107,11 @@ function FooterMenu({
 }
 
 const FALLBACK_FOOTER_MENU = {
-  id: 'gid://shopify/Menu/199655620664',
+  id: 'gid://shopify/Menu/fallback-footer',
   items: [
     {
-      id: 'gid://shopify/MenuItem/461633060920',
-      resourceId: 'gid://shopify/ShopPolicy/23358046264',
+      id: 'fallback-privacy',
+      resourceId: null,
       tags: [],
       title: 'Privacy Policy',
       type: 'SHOP_POLICY',
@@ -86,8 +119,8 @@ const FALLBACK_FOOTER_MENU = {
       items: [],
     },
     {
-      id: 'gid://shopify/MenuItem/461633093688',
-      resourceId: 'gid://shopify/ShopPolicy/23358013496',
+      id: 'fallback-refund',
+      resourceId: null,
       tags: [],
       title: 'Refund Policy',
       type: 'SHOP_POLICY',
@@ -95,8 +128,8 @@ const FALLBACK_FOOTER_MENU = {
       items: [],
     },
     {
-      id: 'gid://shopify/MenuItem/461633126456',
-      resourceId: 'gid://shopify/ShopPolicy/23358111800',
+      id: 'fallback-shipping',
+      resourceId: null,
       tags: [],
       title: 'Shipping Policy',
       type: 'SHOP_POLICY',
@@ -104,8 +137,8 @@ const FALLBACK_FOOTER_MENU = {
       items: [],
     },
     {
-      id: 'gid://shopify/MenuItem/461633159224',
-      resourceId: 'gid://shopify/ShopPolicy/23358079032',
+      id: 'fallback-terms',
+      resourceId: null,
       tags: [],
       title: 'Terms of Service',
       type: 'SHOP_POLICY',
@@ -114,16 +147,3 @@ const FALLBACK_FOOTER_MENU = {
     },
   ],
 };
-
-function activeLinkStyle({
-  isActive,
-  isPending,
-}: {
-  isActive: boolean;
-  isPending: boolean;
-}) {
-  return {
-    fontWeight: isActive ? 'bold' : undefined,
-    color: isPending ? 'grey' : 'white',
-  };
-}

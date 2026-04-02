@@ -49,17 +49,15 @@ export function PageLayout({
       <CartEventListener />
       <SearchAside />
       <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
-      <header>
-        {header && (
-          <Header
-            header={header}
-            cart={cart}
-            isLoggedIn={isLoggedIn}
-            publicStoreDomain={publicStoreDomain}
-          />
-        )}
-      </header>
-      <main>{children}</main>
+      {header && (
+        <Header
+          header={header}
+          cart={cart}
+          isLoggedIn={isLoggedIn}
+          publicStoreDomain={publicStoreDomain}
+        />
+      )}
+      <main className="pt-14">{children}</main>
       <FloatingChat />
       <Footer
         footer={footer}

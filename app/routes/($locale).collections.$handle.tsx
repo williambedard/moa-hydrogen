@@ -1,35 +1,23 @@
-import {redirect, useLoaderData} from 'react-router';
+import {redirect, useLoaderData, Link} from 'react-router';
 import type {Route} from './+types/collections.$handle';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
-import {ProductItem} from '~/components/ProductItem';
-import type {ProductItemFragment} from 'storefrontapi.generated';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.collection.title ?? ''} Collection`}];
+  return [{title: `MOA | ${data?.collection.title ?? 'Collection'}`}];
 };
 
 export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
   const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
   const criticalData = await loadCriticalData(args);
-
   return {...deferredData, ...criticalData};
 }
 
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
 async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
   const {handle} = params;
   const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 8,
-  });
+  const paginationVariables = getPaginationVariables(request, {pageBy: 12});
 
   if (!handle) {
     throw redirect('/collections');
@@ -38,52 +26,69 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
   const [{collection}] = await Promise.all([
     storefront.query(COLLECTION_QUERY, {
       variables: {handle, ...paginationVariables},
-      // Add other queries here, so that they are loaded in parallel
     }),
   ]);
 
   if (!collection) {
-    throw new Response(`Collection ${handle} not found`, {
-      status: 404,
-    });
+    throw new Response(`Collection ${handle} not found`, {status: 404});
   }
 
-  // The API handle might be localized, so redirect to the localized handle
   redirectIfHandleIsLocalized(request, {handle, data: collection});
 
-  return {
-    collection,
-  };
+  return {collection};
 }
 
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
 function loadDeferredData({context}: Route.LoaderArgs) {
   return {};
+}
+
+interface CollectionProduct {
+  id: string;
+  handle: string;
+  title: string;
+  description: string;
+  availableForSale: boolean;
+  featuredImage?: {url: string; altText?: string | null; width?: number; height?: number} | null;
+  priceRange: {
+    minVariantPrice: {amount: string; currencyCode: string};
+  };
+  metafields: Array<{key: string; value: string} | null>;
 }
 
 export default function Collection() {
   const {collection} = useLoaderData<typeof loader>();
 
   return (
-    <div className="collection">
-      <h1>{collection.title}</h1>
-      <p className="collection-description">{collection.description}</p>
-      <PaginatedResourceSection<ProductItemFragment>
-        connection={collection.products}
-        resourcesClassName="products-grid"
-      >
-        {({node: product, index}) => (
-          <ProductItem
-            key={product.id}
-            product={product}
-            loading={index < 8 ? 'eager' : undefined}
-          />
+    <div className="min-h-screen bg-[var(--moa-bg)] pt-8 pb-16">
+      <div className="max-w-5xl mx-auto px-6 mb-12">
+        <p className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] text-[var(--moa-text-tertiary)] uppercase mb-3">
+          Mechanism of Action
+        </p>
+        <h1 className="font-[var(--font-heading)] text-[clamp(2rem,4vw,3rem)] text-[var(--moa-text)] leading-tight mb-2">
+          {collection.title}
+        </h1>
+        {collection.description && (
+          <p className="font-[var(--font-body)] text-base text-[var(--moa-text-secondary)] max-w-lg">
+            {collection.description}
+          </p>
         )}
-      </PaginatedResourceSection>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-6">
+        <PaginatedResourceSection<CollectionProduct>
+          connection={collection.products}
+          resourcesClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {({node: product, index}) => (
+            <CollectionCard
+              key={product.id}
+              product={product}
+              loading={index < 6 ? 'eager' : 'lazy'}
+            />
+          )}
+        </PaginatedResourceSection>
+      </div>
+
       <Analytics.CollectionView
         data={{
           collection: {
@@ -96,36 +101,72 @@ export default function Collection() {
   );
 }
 
-const PRODUCT_ITEM_FRAGMENT = `#graphql
-  fragment MoneyProductItem on MoneyV2 {
-    amount
-    currencyCode
-  }
-  fragment ProductItem on Product {
-    id
-    handle
-    title
-    featuredImage {
-      id
-      altText
-      url
-      width
-      height
-    }
-    priceRange {
-      minVariantPrice {
-        ...MoneyProductItem
-      }
-      maxVariantPrice {
-        ...MoneyProductItem
-      }
-    }
-  }
-` as const;
+function CollectionCard({
+  product,
+  loading,
+}: {
+  product: CollectionProduct;
+  loading: 'eager' | 'lazy';
+}) {
+  const price = `${product.priceRange.minVariantPrice.currencyCode} ${product.priceRange.minVariantPrice.amount}`;
+  const ingredients = product.metafields?.[0]?.value || null;
 
-// NOTE: https://shopify.dev/docs/api/storefront/2022-04/objects/collection
+  return (
+    <Link
+      to={`/products/${product.handle}`}
+      className="group block rounded-xl overflow-hidden border border-[var(--moa-border)] bg-[var(--moa-surface)] transition-shadow duration-300 hover:shadow-[0_0_24px_var(--moa-accent-glow)] focus:outline-2 focus:outline-[var(--moa-accent)] focus:outline-offset-2"
+      prefetch="intent"
+    >
+      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--moa-surface-elevated)]">
+        {product.featuredImage?.url ? (
+          <img
+            src={product.featuredImage.url}
+            alt={product.featuredImage.altText || product.title}
+            loading={loading}
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[var(--moa-surface)] to-[var(--moa-surface-elevated)]" />
+        )}
+        {!product.availableForSale && (
+          <span className="absolute top-3 right-3 py-1 px-2.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] bg-[var(--moa-surface)]/90 text-[var(--moa-text-tertiary)] backdrop-blur-sm rounded">
+            Sold out
+          </span>
+        )}
+      </div>
+
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <h2 className="font-[var(--font-body)] text-base font-medium text-[var(--moa-text)] leading-tight">
+            {product.title}
+          </h2>
+          <span className="shrink-0 font-[var(--font-mono)] text-sm text-[var(--moa-accent)]">
+            {price}
+          </span>
+        </div>
+
+        {product.description && (
+          <p className="font-[var(--font-body)] text-sm text-[var(--moa-text-secondary)] leading-relaxed line-clamp-3 mb-4">
+            {product.description}
+          </p>
+        )}
+
+        {ingredients && (
+          <div className="pt-3 border-t border-[var(--moa-border)]">
+            <p className="font-[var(--font-body)] text-[0.7rem] font-medium uppercase tracking-[0.15em] text-[var(--moa-text-tertiary)] mb-1.5">
+              Ingredients
+            </p>
+            <p className="font-[var(--font-mono)] text-xs text-[var(--moa-text-tertiary)] leading-relaxed line-clamp-3">
+              {ingredients}
+            </p>
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 const COLLECTION_QUERY = `#graphql
-  ${PRODUCT_ITEM_FRAGMENT}
   query Collection(
     $handle: String!
     $country: CountryCode
@@ -144,16 +185,37 @@ const COLLECTION_QUERY = `#graphql
         first: $first,
         last: $last,
         before: $startCursor,
-        after: $endCursor
+        after: $endCursor,
+        sortKey: BEST_SELLING
       ) {
         nodes {
-          ...ProductItem
+          id
+          handle
+          title
+          description
+          availableForSale
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          metafields(identifiers: [{namespace: "custom", key: "ingredients"}]) {
+            key
+            value
+          }
         }
         pageInfo {
           hasPreviousPage
           hasNextPage
-          endCursor
           startCursor
+          endCursor
         }
       }
     }

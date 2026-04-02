@@ -1,4 +1,4 @@
-import {Suspense} from 'react';
+import {Suspense, useState, useEffect} from 'react';
 import {Await, NavLink, useAsyncValue} from 'react-router';
 import {
   type CartViewPayload,
@@ -23,19 +23,48 @@ export function Header({
   cart,
   publicStoreDomain,
 }: HeaderProps) {
-  const {shop, menu} = header;
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, {passive: true});
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="header">
-      <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
-        <strong>{shop.name}</strong>
+    <header
+      className={`
+        fixed top-0 inset-x-0 h-14 flex items-center justify-between px-6 z-50
+        transition-all duration-300 ease-out
+        ${isScrolled
+          ? 'bg-[var(--moa-surface)]/95 backdrop-blur-[10px] shadow-[0_1px_0_var(--moa-border)]'
+          : 'bg-[var(--moa-surface)]/80 backdrop-blur-[6px]'}
+      `}
+    >
+      {/* Logo */}
+      <NavLink
+        prefetch="intent"
+        to="/"
+        end
+        className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] uppercase text-[var(--moa-text)] hover:text-[var(--moa-accent)] transition-colors duration-300 no-underline shrink-0"
+      >
+        MOA
       </NavLink>
+
+      {/* Desktop nav */}
       <HeaderMenu
-        menu={menu}
+        menu={header.menu}
         viewport="desktop"
         primaryDomainUrl={header.shop.primaryDomain.url}
         publicStoreDomain={publicStoreDomain}
       />
-      <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
+
+      {/* Right side: mobile toggle + cart */}
+      <div className="flex items-center gap-2">
+        <MobileMenuToggle />
+        <CartToggle cart={cart} />
+      </div>
     </header>
   );
 }
@@ -51,41 +80,47 @@ export function HeaderMenu({
   viewport: Viewport;
   publicStoreDomain: HeaderProps['publicStoreDomain'];
 }) {
-  const className = `header-menu-${viewport}`;
   const {close} = useAside();
+  const items = (menu || FALLBACK_HEADER_MENU).items;
 
-  return (
-    <nav className={className} role="navigation">
-      {viewport === 'mobile' && (
-        <NavLink
-          end
-          onClick={close}
-          prefetch="intent"
-          style={activeLinkStyle}
-          to="/"
-        >
+  if (viewport === 'mobile') {
+    return (
+      <nav className="flex flex-col gap-1 py-4" role="navigation">
+        <MobileNavLink to="/" onClick={close}>
           Home
-        </NavLink>
-      )}
-      {(menu || FALLBACK_HEADER_MENU).items.map((item) => {
-        if (!item.url) return null;
+        </MobileNavLink>
+        {items.map((item) => {
+          if (!item.url) return null;
+          const url = stripDomain(item.url, publicStoreDomain, primaryDomainUrl);
+          return (
+            <MobileNavLink key={item.id} to={url} onClick={close}>
+              {item.title}
+            </MobileNavLink>
+          );
+        })}
+      </nav>
+    );
+  }
 
-        // if the url is internal, we strip the domain
-        const url =
-          item.url.includes('myshopify.com') ||
-          item.url.includes(publicStoreDomain) ||
-          item.url.includes(primaryDomainUrl)
-            ? new URL(item.url).pathname
-            : item.url;
+  // Desktop
+  return (
+    <nav className="hidden md:flex items-center gap-8" role="navigation">
+      {items.map((item) => {
+        if (!item.url) return null;
+        const url = stripDomain(item.url, publicStoreDomain, primaryDomainUrl);
         return (
           <NavLink
-            className="header-menu-item"
-            end
             key={item.id}
-            onClick={close}
+            end
             prefetch="intent"
-            style={activeLinkStyle}
             to={url}
+            className={({isActive}) =>
+              `font-[var(--font-body)] text-[0.8125rem] tracking-wide transition-colors duration-200 no-underline ${
+                isActive
+                  ? 'text-[var(--moa-accent)] font-medium'
+                  : 'text-[var(--moa-text-secondary)] hover:text-[var(--moa-text)]'
+              }`
+            }
           >
             {item.title}
           </NavLink>
@@ -95,43 +130,50 @@ export function HeaderMenu({
   );
 }
 
-function HeaderCtas({
-  isLoggedIn,
-  cart,
-}: Pick<HeaderProps, 'isLoggedIn' | 'cart'>) {
+function MobileNavLink({
+  to,
+  onClick,
+  children,
+}: {
+  to: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <nav className="header-ctas" role="navigation">
-      <HeaderMenuMobileToggle />
-      <NavLink prefetch="intent" to="/account" style={activeLinkStyle}>
-        <Suspense fallback="Sign in">
-          <Await resolve={isLoggedIn} errorElement="Sign in">
-            {(isLoggedIn) => (isLoggedIn ? 'Account' : 'Sign in')}
-          </Await>
-        </Suspense>
-      </NavLink>
-      <SearchToggle />
-      <CartToggle cart={cart} />
-    </nav>
+    <NavLink
+      end
+      to={to}
+      onClick={onClick}
+      prefetch="intent"
+      className={({isActive}) =>
+        `block px-4 py-3 font-[var(--font-body)] text-sm rounded-lg transition-colors duration-200 no-underline ${
+          isActive
+            ? 'text-[var(--moa-accent)] bg-[var(--moa-accent-glow)]'
+            : 'text-[var(--moa-text-secondary)] hover:text-[var(--moa-text)] hover:bg-[var(--moa-surface-elevated)]'
+        }`
+      }
+    >
+      {children}
+    </NavLink>
   );
 }
 
-function HeaderMenuMobileToggle() {
+function MobileMenuToggle() {
   const {open} = useAside();
   return (
     <button
-      className="header-menu-mobile-toggle reset"
+      className="md:hidden w-10 h-10 flex items-center justify-center text-[var(--moa-text-secondary)] hover:text-[var(--moa-text)] transition-colors duration-200"
       onClick={() => open('mobile')}
+      aria-label="Open menu"
     >
-      <h3>☰</h3>
-    </button>
-  );
-}
-
-function SearchToggle() {
-  const {open} = useAside();
-  return (
-    <button className="reset" onClick={() => open('search')}>
-      Search
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M3 6h18M3 12h18M3 18h18"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
     </button>
   );
 }
@@ -141,10 +183,8 @@ function CartBadge({count}: {count: number | null}) {
   const {publish, shop, cart, prevCart} = useAnalytics();
 
   return (
-    <a
-      href="/cart"
-      onClick={(e) => {
-        e.preventDefault();
+    <button
+      onClick={() => {
         open('cart');
         publish('cart_viewed', {
           cart,
@@ -153,9 +193,24 @@ function CartBadge({count}: {count: number | null}) {
           url: window.location.href || '',
         } as CartViewPayload);
       }}
+      className="relative w-10 h-10 flex items-center justify-center text-[var(--moa-text-secondary)] hover:text-[var(--moa-text)] transition-colors duration-200"
+      aria-label="Open cart"
     >
-      Cart {count === null ? <span>&nbsp;</span> : count}
-    </a>
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M6 6H4L2 20H22L20 6H18M6 6V4C6 2.89543 6.89543 2 8 2H16C17.1046 2 18 2.89543 18 4V6M6 6H18"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {count !== null && count > 0 && (
+        <span className="absolute top-1 right-1 min-w-4 h-4 flex items-center justify-center text-[0.625rem] font-medium rounded-full px-1 bg-[var(--moa-accent)] text-[var(--moa-bg)]">
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -175,39 +230,46 @@ function CartBanner() {
   return <CartBadge count={cart?.totalQuantity ?? 0} />;
 }
 
+/** Strip store domain from menu URLs to keep links relative */
+function stripDomain(
+  url: string,
+  publicStoreDomain: string,
+  primaryDomainUrl: string,
+): string {
+  if (
+    url.includes('myshopify.com') ||
+    url.includes(publicStoreDomain) ||
+    url.includes(primaryDomainUrl)
+  ) {
+    return new URL(url).pathname;
+  }
+  return url;
+}
+
 const FALLBACK_HEADER_MENU = {
-  id: 'gid://shopify/Menu/199655587896',
+  id: 'gid://shopify/Menu/fallback',
   items: [
     {
-      id: 'gid://shopify/MenuItem/461609500728',
+      id: 'fallback-home',
       resourceId: null,
       tags: [],
-      title: 'Collections',
+      title: 'Home',
       type: 'HTTP',
-      url: '/collections',
+      url: '/',
       items: [],
     },
     {
-      id: 'gid://shopify/MenuItem/461609533496',
+      id: 'fallback-products',
       resourceId: null,
       tags: [],
-      title: 'Blog',
+      title: 'Our Products',
       type: 'HTTP',
-      url: '/blogs/journal',
+      url: '/collections/all',
       items: [],
     },
     {
-      id: 'gid://shopify/MenuItem/461609566264',
+      id: 'fallback-about',
       resourceId: null,
-      tags: [],
-      title: 'Policies',
-      type: 'HTTP',
-      url: '/policies',
-      items: [],
-    },
-    {
-      id: 'gid://shopify/MenuItem/461609599032',
-      resourceId: 'gid://shopify/Page/92591030328',
       tags: [],
       title: 'About',
       type: 'PAGE',
@@ -216,16 +278,3 @@ const FALLBACK_HEADER_MENU = {
     },
   ],
 };
-
-function activeLinkStyle({
-  isActive,
-  isPending,
-}: {
-  isActive: boolean;
-  isPending: boolean;
-}) {
-  return {
-    fontWeight: isActive ? 'bold' : undefined,
-    color: isPending ? 'grey' : 'black',
-  };
-}

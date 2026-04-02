@@ -4,7 +4,7 @@ import {getPaginationVariables} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'MOA | The Catalog'}];
+  return [{title: 'MOA | Our Products'}];
 };
 
 export async function loader({context, request}: Route.LoaderArgs) {
@@ -42,7 +42,7 @@ export default function CatalogPage() {
           Mechanism of Action
         </p>
         <h1 className="font-[var(--font-heading)] text-[clamp(2rem,4vw,3rem)] text-[var(--moa-text)] leading-tight mb-2">
-          The Catalog
+          Our Products
         </h1>
         <p className="font-[var(--font-body)] text-base text-[var(--moa-text-secondary)] max-w-lg">
           Clinical-grade supplements, backed by evidence.
