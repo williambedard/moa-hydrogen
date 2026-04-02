@@ -3,7 +3,7 @@ import type {Route} from './+types/pages.$handle';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.page.title ?? ''}`}];
+  return [{title: `MOA | ${data?.page.title ?? ''}`}];
 };
 
 export async function loader(args: Route.LoaderArgs) {
@@ -57,12 +57,24 @@ function loadDeferredData({context}: Route.LoaderArgs) {
 export default function Page() {
   const {page} = useLoaderData<typeof loader>();
 
+  // page.body is trusted HTML from Shopify CMS (admin-authored content)
+  const pageBody = page.body;
+
   return (
-    <div className="page">
-      <header>
-        <h1>{page.title}</h1>
-      </header>
-      <main dangerouslySetInnerHTML={{__html: page.body}} />
+    <div className="min-h-screen bg-[var(--moa-bg)] pt-8 pb-16">
+      <div className="max-w-3xl mx-auto px-6">
+        <p className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] text-[var(--moa-text-tertiary)] uppercase mb-3">
+          Mechanism of Action
+        </p>
+        <h1 className="font-[var(--font-heading)] text-[clamp(2rem,4vw,3rem)] text-[var(--moa-text)] leading-tight mb-8">
+          {page.title}
+        </h1>
+        {/* eslint-disable-next-line react/no-danger -- Shopify CMS content is trusted */}
+        <div
+          className="prose-page font-[var(--font-body)] text-[var(--moa-text-secondary)] leading-relaxed"
+          dangerouslySetInnerHTML={{__html: pageBody}}
+        />
+      </div>
     </div>
   );
 }

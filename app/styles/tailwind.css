@@ -244,6 +244,86 @@
   animation: voicePulse 1.2s ease-in-out infinite;
 }
 
+/* Prose styles for Shopify CMS pages (Contact, About, etc.) */
+.prose-page {
+  font-size: 0.9375rem;
+}
+
+.prose-page p {
+  margin-bottom: 1.25em;
+}
+
+.prose-page h2, .prose-page h3, .prose-page h4 {
+  font-family: var(--font-heading);
+  color: var(--moa-text);
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+  line-height: 1.3;
+}
+
+.prose-page h2 { font-size: 1.5rem; }
+.prose-page h3 { font-size: 1.25rem; }
+.prose-page h4 { font-size: 1.125rem; }
+
+.prose-page a {
+  color: var(--moa-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--moa-accent-dim);
+}
+
+.prose-page a:hover {
+  color: var(--moa-accent-dim);
+}
+
+.prose-page ul, .prose-page ol {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+
+.prose-page li {
+  margin: 0.5em 0;
+}
+
+.prose-page blockquote {
+  border-left: 3px solid var(--moa-border);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  color: var(--moa-text-tertiary);
+  font-style: italic;
+}
+
+.prose-page img {
+  border-radius: 0.75rem;
+  margin: 1.5em 0;
+}
+
+.prose-page hr {
+  border: none;
+  border-top: 1px solid var(--moa-border);
+  margin: 2em 0;
+}
+
+.prose-page table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+}
+
+.prose-page th, .prose-page td {
+  padding: 0.75em 1em;
+  border-bottom: 1px solid var(--moa-border);
+  text-align: left;
+}
+
+.prose-page th {
+  color: var(--moa-text);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* Aside overlays (cart, search, mobile menu) */
 .overlay {
   position: fixed;
