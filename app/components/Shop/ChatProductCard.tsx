@@ -29,7 +29,18 @@ export function ChatProductCard({product}: ChatProductCardProps) {
   }
 
   const lines: OptimisticCartLineInput[] = [
-    {merchandiseId: firstVariant.id, quantity: 1},
+    {
+      merchandiseId: firstVariant.id,
+      quantity: 1,
+      selectedVariant: {
+        id: firstVariant.id,
+        title: firstVariant.title,
+        availableForSale: firstVariant.availableForSale,
+        price: {amount: firstVariant.price.replace(/[^0-9.]/g, ''), currencyCode: 'USD'},
+        product: {title: product.title, handle: product.handle},
+        image: product.image_url ? {url: product.image_url, altText: product.title} : undefined,
+      } as Record<string, unknown>,
+    },
   ];
 
   return (
