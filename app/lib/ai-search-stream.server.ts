@@ -39,6 +39,7 @@ function isVirtualTool(name: string): boolean {
 const INVISIBLE_VIRTUAL_TOOLS = new Set([
   '_concierge_suggest_prompts',
   '_concierge_update_context',
+  '_concierge_notify_restock',
 ]);
 
 function isInvisibleVirtualTool(name: string): boolean {
@@ -111,6 +112,30 @@ const VIRTUAL_TOOLS: Anthropic.Tool[] = [
           items: {type: 'string'},
         },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: '_concierge_notify_restock',
+    description:
+      'Register a back-in-stock notification request when a product is out of stock and the customer wants to be notified when it returns.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        product_id: {
+          type: 'string',
+          description: 'Product GID (e.g. "gid://shopify/Product/123")',
+        },
+        product_title: {
+          type: 'string',
+          description: 'Product name for logging',
+        },
+        customer_email: {
+          type: 'string',
+          description: 'Customer email if provided, otherwise omit',
+        },
+      },
+      required: ['product_id', 'product_title'],
       additionalProperties: false,
     },
   },
@@ -661,7 +686,19 @@ export async function* streamAIQuery(
                 }
                 break;
               }
-              // _concierge_set_intent removed — no longer needed
+              case '_concierge_notify_restock': {
+                const productId = toolUse.input.product_id as string || 'unknown';
+                const productTitle = toolUse.input.product_title as string || 'unknown';
+                const customerEmail = toolUse.input.customer_email as string || 'not provided';
+                // TODO: Wire to back-in-stock notification service (Shopify app, Klaviyo, etc.)
+                console.warn(
+                  `[RESTOCK NOTIFY] ⚠️ Notification requested but no service connected.\n` +
+                  `  Product: ${productTitle} (${productId})\n` +
+                  `  Customer email: ${customerEmail}\n` +
+                  `  → Connect a back-in-stock app to handle this.`
+                );
+                break;
+              }
             }
             // Invisible virtual tools: return OK to Claude, no SSE events
             toolResults.push({
@@ -1290,6 +1327,15 @@ Once you have tool results, USE them. Explain why a product fits, break down the
 Product cards show images, live pricing, and "Add to cart". Never state prices — the card handles that. But DO explain what makes the product work and why it's right for them.
 
 If someone asks for something the store doesn't carry, search first to confirm, then be honest.
+
+IMPORTANT — Product availability awareness:
+When you look up products, pay attention to the availableForSale field and any selling plan data. Products can be in three states:
+
+1. IN STOCK (availableForSale: true, no selling plan) — Recommend normally. The "Add" button on the card just works.
+2. PRE-ORDER (availableForSale: true, has a selling plan or "pre-order" in tags/description) — Still recommend. Proactively tell the customer: "This is available for pre-order — you can add it to cart now and it ships when ready." The Add button works, and the cart/checkout will show pre-order terms.
+3. OUT OF STOCK (availableForSale: false) — Still recommend if it's the right product for their goal. Tell them honestly: "The [product] is currently out of stock." Then offer to notify them when it's back using _concierge_notify_restock. Ask for their email if they want the notification.
+
+Never hide a product just because it's out of stock or on pre-order. Always recommend the right product for the customer's goal. The card button stays "Add" — you provide the context about status in your response.
 </data_policy>
 ${hasHistory ? '\n<conversation_state>Ongoing conversation — reference earlier context. If the user says "that one", "add it", or "the creatine", they mean the most recently discussed product.</conversation_state>\n' : ''}${contextBlock}${productBlock}${cartIdNote}
 
@@ -1368,6 +1414,11 @@ _concierge_suggest_prompts — Suggest follow-up questions
 _concierge_update_context — Remember shopping preferences
   Use when user mentions goals, budget, dietary needs, or preferences.
   Args: preferences (categories, budget, goals, dietary), constraints, rejectedProducts, likedProducts
+
+_concierge_notify_restock — Register a back-in-stock notification
+  Use when a product is out of stock (availableForSale: false) and the customer wants to know when it's back.
+  Args: product_id (GID), product_title, customer_email (if provided)
+  After calling this, confirm to the customer that they'll be notified.
 
 --- CUSTOMER ACCOUNT TOOLS (only when customer is logged in) ---
 
