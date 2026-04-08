@@ -411,13 +411,13 @@
   color: var(--moa-text);
 }
 
-/* Cart aside content styling */
-.overlay aside a {
+/* Cart aside content styling — exclude CTA buttons */
+.overlay aside a:not([class*="bg-"]) {
   color: var(--moa-accent);
   text-decoration: none;
 }
 
-.overlay aside a:hover {
+.overlay aside a:not([class*="bg-"]):hover {
   text-decoration: underline;
 }
 

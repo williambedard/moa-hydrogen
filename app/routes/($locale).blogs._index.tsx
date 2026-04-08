@@ -54,21 +54,30 @@ export default function Blogs() {
   const {blogs} = useLoaderData<typeof loader>();
 
   return (
-    <div className="blogs">
-      <h1>Blogs</h1>
-      <div className="blogs-grid">
-        <PaginatedResourceSection<BlogNode> connection={blogs}>
-          {({node: blog}) => (
-            <Link
-              className="blog"
-              key={blog.handle}
-              prefetch="intent"
-              to={`/blogs/${blog.handle}`}
-            >
-              <h2>{blog.title}</h2>
-            </Link>
-          )}
-        </PaginatedResourceSection>
+    <div className="min-h-screen bg-[var(--moa-bg)] pt-8 pb-16">
+      <div className="max-w-4xl mx-auto px-6">
+        <p className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] text-[var(--moa-text-tertiary)] uppercase mb-3">
+          Mechanism of Action
+        </p>
+        <h1 className="font-[var(--font-heading)] text-4xl text-[var(--moa-text)] mb-8">
+          Blogs
+        </h1>
+        <div className="space-y-3">
+          <PaginatedResourceSection<BlogNode> connection={blogs}>
+            {({node: blog}) => (
+              <Link
+                key={blog.handle}
+                prefetch="intent"
+                to={`/blogs/${blog.handle}`}
+                className="block p-5 rounded-xl border border-[var(--moa-border)] bg-[var(--moa-surface)] hover:border-[var(--moa-accent)] transition-colors"
+              >
+                <h2 className="font-[var(--font-body)] text-base font-medium text-[var(--moa-text)]">
+                  {blog.title} &rarr;
+                </h2>
+              </Link>
+            )}
+          </PaginatedResourceSection>
+        </div>
       </div>
     </div>
   );

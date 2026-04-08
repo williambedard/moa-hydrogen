@@ -20,6 +20,16 @@ export default async function handleRequest(
       storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     },
     imgSrc: ["'self'", 'data:', 'https://cdn.shopify.com'],
+    styleSrc: [
+      "'self'",
+      "'unsafe-inline'",
+      'https://cdn.shopify.com',
+      'https://fonts.googleapis.com',
+    ],
+    fontSrc: [
+      "'self'",
+      'https://fonts.gstatic.com',
+    ],
   });
 
   const body = await renderToReadableStream(

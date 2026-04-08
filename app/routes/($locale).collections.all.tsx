@@ -1,6 +1,6 @@
 import type {Route} from './+types/collections.all';
 import {Link, useLoaderData} from 'react-router';
-import {getPaginationVariables} from '@shopify/hydrogen';
+import {getPaginationVariables, Money} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 
 export const meta: Route.MetaFunction = () => {
@@ -75,7 +75,7 @@ function CatalogCard({
   product: CatalogProduct;
   loading: 'eager' | 'lazy';
 }) {
-  const price = `${product.priceRange.minVariantPrice.currencyCode} ${product.priceRange.minVariantPrice.amount}`;
+  const priceData = product.priceRange.minVariantPrice;
   const ingredients = product.metafields?.[0]?.value || null;
 
   return (
@@ -110,7 +110,7 @@ function CatalogCard({
             {product.title}
           </h2>
           <span className="shrink-0 font-[var(--font-mono)] text-sm text-[var(--moa-accent)]">
-            {price}
+            <Money data={priceData} />
           </span>
         </div>
 

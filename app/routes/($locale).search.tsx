@@ -41,37 +41,53 @@ export default function SearchPage() {
   if (type === 'predictive') return null;
 
   return (
-    <div className="search">
-      <h1>Search</h1>
-      <SearchForm>
-        {({inputRef}) => (
-          <>
-            <input
-              defaultValue={term}
-              name="q"
-              placeholder="Search…"
-              ref={inputRef}
-              type="search"
-            />
-            &nbsp;
-            <button type="submit">Search</button>
-          </>
-        )}
-      </SearchForm>
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      {!term || !result?.total ? (
-        <SearchResults.Empty />
-      ) : (
-        <SearchResults result={result} term={term}>
-          {({articles, pages, products, term}) => (
-            <div>
-              <SearchResults.Products products={products} term={term} />
-              <SearchResults.Pages pages={pages} term={term} />
-              <SearchResults.Articles articles={articles} term={term} />
+    <div className="min-h-screen bg-[var(--moa-bg)] pt-8 pb-16">
+      <div className="max-w-4xl mx-auto px-6">
+        <p className="font-[var(--font-body)] text-xs font-medium tracking-[0.3em] text-[var(--moa-text-tertiary)] uppercase mb-3">
+          Mechanism of Action
+        </p>
+        <h1 className="font-[var(--font-heading)] text-4xl text-[var(--moa-text)] mb-8">
+          Search
+        </h1>
+        <SearchForm>
+          {({inputRef}) => (
+            <div className="flex gap-3 mb-10">
+              <input
+                defaultValue={term}
+                name="q"
+                placeholder="Search products..."
+                ref={inputRef}
+                type="search"
+                className="flex-1 px-4 py-3 rounded-lg bg-[var(--moa-surface-elevated)] border border-[var(--moa-border)] font-[var(--font-body)] text-sm text-[var(--moa-text)] placeholder:text-[var(--moa-text-tertiary)] focus:outline-none focus:border-[var(--moa-accent)] transition-colors"
+              />
+              <button
+                type="submit"
+                className="px-6 py-3 rounded-lg bg-[var(--moa-accent)] text-[var(--moa-bg)] font-[var(--font-body)] text-sm font-medium tracking-wide uppercase hover:bg-[var(--moa-accent-dim)] transition-colors"
+              >
+                Search
+              </button>
             </div>
           )}
-        </SearchResults>
-      )}
+        </SearchForm>
+        {error && (
+          <p className="text-[var(--moa-error)] font-[var(--font-body)] text-sm mb-4">
+            {error}
+          </p>
+        )}
+        {!term || !result?.total ? (
+          <SearchResults.Empty />
+        ) : (
+          <SearchResults result={result} term={term}>
+            {({articles, pages, products, term}) => (
+              <div className="space-y-10">
+                <SearchResults.Products products={products} term={term} />
+                <SearchResults.Pages pages={pages} term={term} />
+                <SearchResults.Articles articles={articles} term={term} />
+              </div>
+            )}
+          </SearchResults>
+        )}
+      </div>
       <Analytics.SearchView data={{searchTerm: term, searchResults: result}} />
     </div>
   );

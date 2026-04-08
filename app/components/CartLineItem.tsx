@@ -55,11 +55,13 @@ export function CartLineItem({
           {product.title}
         </Link>
         <ul className="mt-1 space-y-0.5">
-          {selectedOptions.map((option) => (
-            <li key={option.name} className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)]">
-              {option.name}: {option.value}
-            </li>
-          ))}
+          {selectedOptions
+            .filter((option) => option.name !== 'Title' || option.value !== 'Default Title')
+            .map((option) => (
+              <li key={option.name} className="font-[var(--font-body)] text-xs text-[var(--moa-text-tertiary)]">
+                {option.name}: {option.value}
+              </li>
+            ))}
         </ul>
         <div className="flex items-center justify-between mt-2">
           <CartLineQuantity line={line} />
