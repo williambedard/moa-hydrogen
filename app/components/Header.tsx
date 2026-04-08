@@ -60,9 +60,10 @@ export function Header({
         publicStoreDomain={publicStoreDomain}
       />
 
-      {/* Right side: mobile toggle + cart */}
-      <div className="flex items-center gap-2">
+      {/* Right side: mobile toggle + account + cart */}
+      <div className="flex items-center gap-1">
         <MobileMenuToggle />
+        <AccountToggle isLoggedIn={isLoggedIn} />
         <CartToggle cart={cart} />
       </div>
     </header>
@@ -98,6 +99,9 @@ export function HeaderMenu({
             </MobileNavLink>
           );
         })}
+        <MobileNavLink to="/account" onClick={close}>
+          Account
+        </MobileNavLink>
       </nav>
     );
   }
@@ -175,6 +179,45 @@ function MobileMenuToggle() {
         />
       </svg>
     </button>
+  );
+}
+
+function AccountToggle({isLoggedIn}: {isLoggedIn: Promise<boolean>}) {
+  return (
+    <Suspense fallback={<AccountIcon />}>
+      <Await resolve={isLoggedIn}>
+        {(loggedIn) => <AccountIcon loggedIn={loggedIn} />}
+      </Await>
+    </Suspense>
+  );
+}
+
+function AccountIcon({loggedIn}: {loggedIn?: boolean}) {
+  return (
+    <NavLink
+      to="/account"
+      className="relative w-10 h-10 flex items-center justify-center text-[var(--moa-text-secondary)] hover:text-[var(--moa-text)] transition-colors duration-200"
+      aria-label={loggedIn ? 'My account' : 'Sign in'}
+    >
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <circle
+          cx="12"
+          cy="8"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M5 20C5 16.6863 7.68629 14 11 14H13C16.3137 14 19 16.6863 19 20"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+      {loggedIn && (
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--moa-accent)]" />
+      )}
+    </NavLink>
   );
 }
 
