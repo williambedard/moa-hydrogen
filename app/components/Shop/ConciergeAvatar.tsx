@@ -25,7 +25,8 @@ export function ConciergeAvatar({
 
   const centerScale = useMemo(() => {
     if (!speaking || shouldReduceMotion) return 1;
-    return 1 + Math.min(audioLevel, 1) * 0.6;
+    const level = typeof audioLevel === 'number' && isFinite(audioLevel) ? audioLevel : 0;
+    return 1 + Math.min(level, 1) * 0.6;
   }, [speaking, shouldReduceMotion, audioLevel]);
 
   // Hexagon points for a regular hexagon centered at (24, 24) with radius 16
