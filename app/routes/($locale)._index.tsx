@@ -281,9 +281,12 @@ function StreamingConversationPromptInner() {
       state.products?.length,
     );
 
-    if (state.fullText && !state.isStreaming) {
+    // Save assistant message when streaming finishes — even if fullText is empty
+    // (the AI may respond with only tool calls / products and no prose)
+    const hasContent = state.fullText || (state.products && state.products.length > 0) || state.toolCalls.length > 0;
+    if (hasContent && !state.isStreaming) {
       // Add the completed assistant message to conversation
-      addAssistantMessage(state.fullText, {
+      addAssistantMessage(state.fullText || '', {
         toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
         thinkingText: state.thinkingText || undefined,
         contentBlocks: state.contentBlocks.length > 0 ? state.contentBlocks : undefined,

@@ -39,10 +39,12 @@ function FloatingChatInner() {
   const {state, startStream, reset} = useStreamingChat();
   const {revalidate} = useRevalidator();
 
-  // Handle streaming completion
+  // Handle streaming completion — save even if fullText is empty
+  // (the AI may respond with only tool calls / products and no prose)
   useEffect(() => {
-    if (state.fullText && !state.isStreaming) {
-      addAssistantMessage(state.fullText, {
+    const hasContent = state.fullText || (state.products && state.products.length > 0) || state.toolCalls.length > 0;
+    if (hasContent && !state.isStreaming) {
+      addAssistantMessage(state.fullText || '', {
         toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
         thinkingText: state.thinkingText || undefined,
         contentBlocks: state.contentBlocks.length > 0 ? state.contentBlocks : undefined,
