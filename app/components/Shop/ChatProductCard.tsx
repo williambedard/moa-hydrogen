@@ -60,7 +60,7 @@ function Thumbnail({product}: {product: Product}) {
 function ProductInfo({product}: {product: Product}) {
   return (
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium text-[var(--moa-text)] truncate leading-tight">
+      <p className="text-sm font-medium text-[var(--moa-text)] leading-tight line-clamp-2">
         {product.title}
       </p>
       <p className="text-xs text-[var(--moa-text-secondary)] font-[var(--font-mono)]">

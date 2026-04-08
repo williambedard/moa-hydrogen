@@ -268,7 +268,7 @@ export function ConciergePrompt({
       key={isInHero ? 'hero' : 'widget'}
       className={isInHero
         ? 'relative z-[110] w-full'
-        : 'fixed z-[110] w-[700px] max-w-[calc(100vw-3rem)] bottom-6 right-6'
+        : 'fixed z-[110] w-[700px] max-w-[calc(100vw-2rem)] bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 sm:max-w-[calc(100vw-3rem)] sm:bottom-6 sm:right-6'
       }
       initial={{opacity: 0}}
       animate={{opacity: 1}}
@@ -303,7 +303,7 @@ export function ConciergePrompt({
           <motion.div
             key="expanded"
             layoutId="concierge-container"
-            className={`relative ${isInHero ? 'w-full' : 'w-[700px] max-w-[calc(100vw-3rem)]'}`}
+            className={`relative ${isInHero ? 'w-full' : 'w-[700px] max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-3rem)]'}`}
             initial={{opacity: 0}}
             animate={{opacity: 1}}
             exit={{opacity: 0}}

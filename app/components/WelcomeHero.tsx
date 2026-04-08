@@ -88,42 +88,7 @@ export const WelcomeHero = forwardRef<HTMLDivElement, WelcomeHeroProps>(
           </motion.div>
         </div>
 
-        {/* Scroll indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-[var(--moa-text-tertiary)]"
-          initial={prefersReducedMotion ? {} : {opacity: 0}}
-          animate={{opacity: 1}}
-          transition={{duration: 0.6, delay: 0.8}}
-        >
-          <svg
-            className="w-5 h-8"
-            viewBox="0 0 24 40"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect
-              x="1"
-              y="1"
-              width="22"
-              height="38"
-              rx="11"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <motion.circle
-              cx="12"
-              cy="12"
-              r="3"
-              fill="currentColor"
-              animate={prefersReducedMotion ? {} : {y: [0, 12, 0]}}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          </svg>
-        </motion.div>
+
       </section>
     );
   },
