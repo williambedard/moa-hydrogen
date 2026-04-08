@@ -463,7 +463,7 @@ function StreamingConversationPromptInner() {
       streamingContentBlocks={state.contentBlocks}
       streamingThinkingText={state.thinkingText}
       isStreaming={state.isStreaming}
-      suggestedPrompts={null}
+      suggestedPrompts={state.suggestedPrompts}
       isVoiceMode={voiceMode.isVoiceMode}
       voiceState={voiceMode.voiceState}
       audioLevel={voiceMode.audioLevel}

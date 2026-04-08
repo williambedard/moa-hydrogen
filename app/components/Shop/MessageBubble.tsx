@@ -145,15 +145,9 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Render content blocks — text only, tools are invisible */}
+          {/* Render content blocks — text streams immediately, tools show status */}
           {blocks.map((block, i) => {
             if (block.type === 'text') {
-              const hasPendingToolBefore = blocks
-                .slice(0, i)
-                .some((b) => b.type === 'tool' && b.toolCall.status === 'pending');
-
-              if (hasPendingToolBefore) return null;
-
               const isLast = i === blocks.length - 1;
               const isFirst = i === 0;
               return (

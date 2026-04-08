@@ -134,7 +134,7 @@ function FloatingChatInner() {
       streamingContentBlocks={state.contentBlocks}
       streamingThinkingText={state.thinkingText}
       isStreaming={state.isStreaming}
-      suggestedPrompts={null}
+      suggestedPrompts={state.suggestedPrompts}
       isInHero={false}
       authRequired={state.authRequired}
     />
