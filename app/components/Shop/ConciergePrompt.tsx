@@ -241,6 +241,8 @@ export function ConciergePrompt({
   const handleChipClick = useCallback(
     (prompt: string) => {
       if (!onSubmit) return;
+      // Show conversation panel immediately for visual feedback
+      setShowConversation(true);
       const formData = new FormData();
       formData.set('query', prompt);
       if (historyJson) formData.set('history', historyJson);

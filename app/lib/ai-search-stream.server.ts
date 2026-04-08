@@ -1643,25 +1643,40 @@ async function enrichProductsFromStorefront(
       };
     };
 
+    /** Format a Storefront API money amount (e.g. "68.0", "USD") into "$68.00". */
+    function formatMoney(amount: string, currencyCode: string): string {
+      const num = parseFloat(amount);
+      if (isNaN(num)) return `${currencyCode} ${amount}`;
+      try {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currencyCode,
+        }).format(num);
+      } catch {
+        // Fallback if Intl doesn't recognize the currency
+        return `${currencyCode} ${num.toFixed(2)}`;
+      }
+    }
+
     const storefrontProducts = result.products?.nodes || [];
 
     return storefrontProducts.map((product) => {
-      const price = `${product.priceRange.minVariantPrice.currencyCode} ${product.priceRange.minVariantPrice.amount}`;
+      const price = formatMoney(product.priceRange.minVariantPrice.amount, product.priceRange.minVariantPrice.currencyCode);
       const compareAtAmount = parseFloat(
         product.compareAtPriceRange.minVariantPrice.amount,
       );
       const compareAtPrice =
         compareAtAmount > 0
-          ? `${product.compareAtPriceRange.minVariantPrice.currencyCode} ${product.compareAtPriceRange.minVariantPrice.amount}`
+          ? formatMoney(product.compareAtPriceRange.minVariantPrice.amount, product.compareAtPriceRange.minVariantPrice.currencyCode)
           : undefined;
 
       const variants = product.variants.nodes.map((v) => ({
         id: v.id,
         title: v.title,
         availableForSale: v.availableForSale,
-        price: `${v.price.currencyCode} ${v.price.amount}`,
+        price: formatMoney(v.price.amount, v.price.currencyCode),
         compareAtPrice: v.compareAtPrice
-          ? `${v.compareAtPrice.currencyCode} ${v.compareAtPrice.amount}`
+          ? formatMoney(v.compareAtPrice.amount, v.compareAtPrice.currencyCode)
           : undefined,
         selectedOptions: v.selectedOptions,
         image: v.image

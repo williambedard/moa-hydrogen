@@ -57,7 +57,7 @@ export function PageLayout({
           publicStoreDomain={publicStoreDomain}
         />
       )}
-      <main className="pt-14">{children}</main>
+      <main className="pt-14 pb-20">{children}</main>
       <FloatingChat />
       <Footer
         footer={footer}
