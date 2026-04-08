@@ -90,6 +90,9 @@ export async function action({request, context}: Route.ActionArgs): Promise<Resp
   const validCustomerToken = (customerAccessToken && tokenExpiresAt && Date.now() < tokenExpiresAt)
     ? customerAccessToken
     : undefined;
+  const customerFirstName = validCustomerToken
+    ? (session.get('customer_first_name') as string | undefined)
+    : undefined;
 
   // Get or create cart for context
   let cartData = await cart.get();
@@ -137,6 +140,8 @@ export async function action({request, context}: Route.ActionArgs): Promise<Resp
     openaiBaseURL: env.OPENAI_BASE_URL,
     openaiApiKey: env.OPENAI_API_KEY,
     customerAccessToken: validCustomerToken,
+    isLoggedIn: Boolean(validCustomerToken),
+    customerFirstName,
   });
 
   const stream = createSSEStream(generator);

@@ -240,6 +240,10 @@ interface StreamAIQueryOptions {
   openaiApiKey?: string;
   /** Customer Account MCP access token (from PKCE OAuth login) */
   customerAccessToken?: string;
+  /** Whether the customer is authenticated */
+  isLoggedIn?: boolean;
+  /** Customer first name from session (set at login) */
+  customerFirstName?: string;
 }
 
 /**
@@ -266,6 +270,8 @@ export async function* streamAIQuery(
     openaiBaseURL,
     openaiApiKey,
     customerAccessToken,
+    isLoggedIn,
+    customerFirstName,
   } = options;
 
   const totalStart = Date.now();
@@ -340,6 +346,8 @@ export async function* streamAIQuery(
       contextBlock,
       productBlock,
       cartIdNote,
+      isLoggedIn,
+      customerFirstName,
     );
 
     // Build messages array from history + current query
@@ -1290,13 +1298,22 @@ export function buildSystemPrompt(
   contextBlock: string,
   productBlock: string,
   cartIdNote: string,
+  isLoggedIn?: boolean,
+  customerFirstName?: string,
 ): string {
+  const customerNote = isLoggedIn && customerFirstName
+    ? `\nThe customer is logged in. Their name is ${customerFirstName}. Use it naturally — greet them by name on the first message if this is a new conversation, but don't overuse it.`
+    : isLoggedIn
+      ? `\nThe customer is logged in. You can access their orders and account info.`
+      : `\nThe customer is not logged in. If they ask about orders or account details, let them know they can log in for that.`;
+
   return `<brand>
 You are the shopping concierge for MOA (Mechanism of Action).
 
 MOA is a premium supplement brand. Every ingredient earns its spot — clinical-grade, evidence-backed, no proprietary blends, no filler. The lineup is intentionally small and curated.
 
 The customer cares about what they put in their body. Athletes, knowledge workers, anyone optimizing for performance and longevity. They want real science, not marketing hype.
+${customerNote}
 </brand>
 
 <voice>

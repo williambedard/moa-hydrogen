@@ -96,6 +96,33 @@ export async function loader({request, context}: Route.LoaderArgs) {
     session.set('customer_refresh_token', tokenData.refresh_token);
   }
 
+  // Fetch customer name for personalization
+  try {
+    const customerResponse = await fetch(
+      `https://shopify.com/${env.PUBLIC_STORE_DOMAIN?.replace('.myshopify.com', '')}/account/customer/api/2025-01/graphql`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenData.access_token}`,
+        },
+        body: JSON.stringify({
+          query: 'query { customer { firstName } }',
+        }),
+      },
+    );
+    if (customerResponse.ok) {
+      const customerData = await customerResponse.json() as {data?: {customer?: {firstName?: string}}};
+      const firstName = customerData?.data?.customer?.firstName;
+      if (firstName) {
+        session.set('customer_first_name', firstName);
+        console.log('[Auth Callback] Customer first name:', firstName);
+      }
+    }
+  } catch (e) {
+    console.warn('[Auth Callback] Could not fetch customer name:', e);
+  }
+
   // Clean up PKCE state
   session.unset('pkce_code_verifier');
   session.unset('pkce_state');
