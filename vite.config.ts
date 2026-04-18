@@ -4,6 +4,37 @@ import {oxygen} from '@shopify/mini-oxygen/vite';
 import {reactRouter} from '@react-router/dev/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from '@tailwindcss/vite';
+import {execSync} from 'node:child_process';
+
+/**
+ * Build-SHA marker stamped into SSR HTML + window.__BUILD_SHA__.
+ * Shape: <shortSha>[-dirty]-<epoch>
+ *
+ * `-dirty` appears only when `git diff --quiet` finds uncommitted tracked
+ * changes — a feature, not a bug: it signals the agent is probing
+ * work that won't land on Oxygen until committed + pushed.
+ *
+ * Oxygen runs its build against a fresh clone, so `-dirty` never appears
+ * there. Local `npm run dev` / `npm run build` is the only source of dirty
+ * markers. Honor BUILD_SHA env override so CI can inject a stable value.
+ */
+function buildSha(): string {
+  if (process.env.BUILD_SHA) return process.env.BUILD_SHA;
+  try {
+    const sha = execSync('git rev-parse --short HEAD', {stdio: ['ignore', 'pipe', 'ignore']})
+      .toString()
+      .trim();
+    let dirty = '';
+    try {
+      execSync('git diff --quiet', {stdio: 'ignore'});
+    } catch {
+      dirty = '-dirty';
+    }
+    return `${sha}${dirty}-${Math.floor(Date.now() / 1000)}`;
+  } catch {
+    return `unknown-${Math.floor(Date.now() / 1000)}`;
+  }
+}
 
 /**
  * Redirects node:path/process/url to bundleable polyfills so the SSR
@@ -36,6 +67,9 @@ function workerNodePolyfills(): Plugin {
 }
 
 export default defineConfig(({isSsrBuild}) => ({
+  define: {
+    __BUILD_SHA__: JSON.stringify(buildSha()),
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     ...(isSsrBuild

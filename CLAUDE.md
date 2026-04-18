@@ -15,6 +15,18 @@ npm run codegen      # Generate types from GraphQL schemas
 
 The `--codegen` flag runs automatically during build/dev to generate TypeScript types from Shopify GraphQL schemas.
 
+## Agent Feedback Loop
+
+This repo has a two-tier browser feedback loop for agent-driven UI work:
+
+- **Tier 1 (local):** `npm run dev` + `bash scripts/probe-local.sh` — <1s feedback via HMR.
+- **Tier 2 (Oxygen):** `bash scripts/checkpoint-oxygen.sh` — pushes to `main` and polls the preview URL for the new build-SHA. ~60–180s. Checkpoint only, never an inner loop.
+
+Build-SHA is stamped by `vite.config.ts` into `<meta name="build-sha">` (SSR) and `window.__BUILD_SHA__` (client). Parity between the two signals SSR/hydration health.
+
+Full recipe: `.claude/skills/browser-feedback-loop.md` (Hydrogen-specific probes, guardrails, escalation).
+Shared protocol: `~/.claude/skills/browser-feedback-loop/SKILL.md`.
+
 ## Architecture
 
 ### Entry Points

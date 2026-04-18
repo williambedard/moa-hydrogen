@@ -29,4 +29,15 @@ declare global {
     /** Origin URL of this storefront (e.g. https://moa-demo.com) — used for OAuth redirect URI */
     CUSTOMER_ACCOUNT_REDIRECT_URI?: string;
   }
+
+  /**
+   * Build-SHA marker injected by Vite `define` at build time.
+   * Shape: <shortSha>[-dirty]-<epoch>. Also mirrored to window.__BUILD_SHA__
+   * for client-side probes. See vite.config.ts buildSha().
+   */
+  const __BUILD_SHA__: string;
+
+  interface Window {
+    __BUILD_SHA__?: string;
+  }
 }

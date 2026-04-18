@@ -157,12 +157,28 @@ export function Layout({children}: {children?: React.ReactNode}) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+        {/*
+         * Build-SHA marker — stamped at build time by vite.config.ts (define: __BUILD_SHA__).
+         * Must render server-side so probes can catch SSR/hydration mismatches.
+         * See .claude/skills/browser-feedback-loop.md for the probe protocol.
+         */}
+        <meta name="build-sha" content={__BUILD_SHA__} />
         <link rel="stylesheet" href={tailwindCss}></link>
         <Meta />
         <Links />
       </head>
       <body>
         {children}
+        {/*
+         * Mirror build-sha to window so client probes can assert hydration
+         * parity. Nonce is required — Hydrogen's CSP blocks unnonced inline scripts.
+         */}
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{
+            __html: `window.__BUILD_SHA__=${JSON.stringify(__BUILD_SHA__)};`,
+          }}
+        />
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
       </body>
