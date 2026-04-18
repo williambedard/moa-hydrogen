@@ -9,3 +9,9 @@ public/build
 .react-router
 .DS_Store
 *.tsbuildinfo
+
+# Pi / per-developer context (never committed)
+FOCUS.md
+.pi/
+.codex/
+.opencode/
