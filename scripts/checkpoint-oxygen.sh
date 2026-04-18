@@ -1,42 +1,37 @@
 #!/usr/bin/env bash
 # checkpoint-oxygen.sh -- Tier 2 deploy checkpoint for moa-hydrogen.
 #
-# Pushes current HEAD to origin/main and waits for the Oxygen preview
-# URL to reflect the new build-sha. Run this ONCE at the end of a
-# Tier 1 loop to verify Oxygen-only behaviors (SSR output, build-time
-# env, real Storefront API). Never loop at Tier 2 -- it's a checkpoint.
+# IMPORTANT: Oxygen does NOT auto-build on `git push`. Deploys require
+# `npx shopify hydrogen deploy` which needs Shopify CLI auth. A headless
+# agent session can't complete that auth flow.
 #
-# Usage: bash scripts/checkpoint-oxygen.sh [timeout_sec]
-#   timeout_sec: passed through to probe-oxygen.sh (default 180)
+# This script therefore splits Tier 2 into two steps:
+#   1. agent pushes to origin/main (version control, so HEAD is shareable)
+#   2. USER runs `npx shopify hydrogen deploy` from their authed shell
+#   3. agent runs `bash scripts/probe-oxygen.sh <sha>` via zmux
+#
+# Usage: bash scripts/checkpoint-oxygen.sh
 #
 # Guardrails:
-#   - Refuses if working tree is dirty (Oxygen ships HEAD; dirty work
-#     won't land).
-#   - Refuses if current branch != main (Oxygen tracks main only for
-#     this project -- see knowledge/moa-hydrogen-conventions.md).
+#   - Refuses if working tree is dirty.
+#   - Refuses if current branch != main (per moa-hydrogen conventions).
 #
-# Deploy trigger: `git push origin main`. Oxygen auto-builds from main;
-# no other deploy step required.
+# Prints the exact commands the user needs to run, plus the expected
+# SHA prefix for the follow-up probe.
 
 set -euo pipefail
-
-TIMEOUT="${1:-180}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 cd "${SCRIPT_DIR}/.."
 
-# Guard: branch must be main.
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 if [[ "${BRANCH}" != "main" ]]; then
   echo "checkpoint-oxygen: REFUSING -- current branch is '${BRANCH}', not 'main'." >&2
-  echo "checkpoint-oxygen: Oxygen tracks main only for this project." >&2
   exit 2
 fi
 
-# Guard: working tree must be clean.
 if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "checkpoint-oxygen: REFUSING -- working tree is dirty." >&2
-  echo "checkpoint-oxygen: Oxygen ships HEAD; dirty work won't land. Commit first." >&2
+  echo "checkpoint-oxygen: REFUSING -- working tree is dirty. Commit first." >&2
   git status --short >&2
   exit 2
 fi
@@ -46,9 +41,26 @@ COMPARE_URL="https://github.com/williambedard/moa-hydrogen/compare/origin/main..
 
 echo "checkpoint-oxygen: HEAD=${EXPECTED_SHA}" >&2
 echo "checkpoint-oxygen: compare URL: ${COMPARE_URL}" >&2
-echo "checkpoint-oxygen: pushing to origin/main..." >&2
+echo "checkpoint-oxygen: pushing to origin/main (version control only)..." >&2
 
 git push origin main
 
-echo "checkpoint-oxygen: push complete, starting Oxygen probe..." >&2
-exec bash "${SCRIPT_DIR}/probe-oxygen.sh" "${EXPECTED_SHA}" "${TIMEOUT}"
+cat >&2 <<EOF
+
+checkpoint-oxygen: push complete. Oxygen does NOT auto-build.
+
+NEXT STEPS (manual, authenticated shell required):
+
+  # 1. Deploy to Oxygen
+  npx shopify hydrogen deploy --env main
+
+  # 2. Once deploy finishes, verify with:
+  bash scripts/probe-oxygen.sh ${EXPECTED_SHA} 180
+
+Expected stamp prefix: ${EXPECTED_SHA}
+Probe transport: zmux browser (authenticated Shopify session required).
+See .claude/skills/browser-feedback-loop.md for the full protocol.
+EOF
+
+printf '{"tier":"checkpoint","pushed":"%s","expected_sha":"%s","compare_url":"%s","next_step":"npx shopify hydrogen deploy --env main"}\n' \
+  "${EXPECTED_SHA}" "${EXPECTED_SHA}" "${COMPARE_URL}"

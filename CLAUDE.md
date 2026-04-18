@@ -17,14 +17,17 @@ The `--codegen` flag runs automatically during build/dev to generate TypeScript 
 
 ## Agent Feedback Loop
 
-This repo has a two-tier browser feedback loop for agent-driven UI work:
+This repo has a three-tier feedback loop for agent-driven UI work. Tier choice is constrained by Shopify CLI auth: `npm run dev`, `npm run preview`, and `npx shopify hydrogen deploy` all require device-code auth a headless agent can't complete.
 
-- **Tier 1 (local):** `npm run dev` + `bash scripts/probe-local.sh` — <1s feedback via HMR.
-- **Tier 2 (Oxygen):** `bash scripts/checkpoint-oxygen.sh` — pushes to `main` and polls the preview URL for the new build-SHA. ~60–180s. Checkpoint only, never an inner loop.
+- **Tier 0 (build):** `bash scripts/probe-build.sh` — headless-safe. Runs `npm run build`, greps the SSR bundle for the build-SHA marker. No network, no auth. ~10s.
+- **Tier 1 (live local):** Will runs `npm run dev`; agent probes with `bash scripts/probe-local.sh [port]`. <1s via HMR.
+- **Tier 2 (Oxygen checkpoint):** agent runs `bash scripts/checkpoint-oxygen.sh` to push `main`; Will runs `npx shopify hydrogen deploy --env main`; agent probes live preview via `bash scripts/probe-oxygen.sh <sha>` through an authenticated zmux browser pane.
 
-Build-SHA is stamped by `vite.config.ts` into `<meta name="build-sha">` (SSR) and `window.__BUILD_SHA__` (client). Parity between the two signals SSR/hydration health.
+Build-SHA is stamped by `vite.config.ts` into `<meta name="build-sha">` (SSR) and `window.__BUILD_SHA__` (client, nonced inline script). Parity between the two signals SSR/hydration health. `-dirty` suffix appears when the working tree has uncommitted tracked changes.
 
-Full recipe: `.claude/skills/browser-feedback-loop.md` (Hydrogen-specific probes, guardrails, escalation).
+**Git push does NOT trigger an Oxygen build.** Deploys happen via `npx shopify hydrogen deploy`. `git push origin main` is version control only.
+
+Full recipe: `.claude/skills/browser-feedback-loop.md` (tier choice, Hydrogen-specific probes, guardrails, escalation).
 Shared protocol: `~/.claude/skills/browser-feedback-loop/SKILL.md`.
 
 ## Architecture
